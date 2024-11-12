@@ -1,0 +1,18 @@
+{
+    "files.exclude": {
+        "**/.git": true,
+        "**/.svn": true,
+        "**/.hg": true,
+        "**/CVS": true,
+        "**/.DS_Store": true,
+        "**/Thumbs.db": true,
+        ".dart_tool": true,
+        ".flutter-plugins-dependencies": true,
+        ".metadata": true,
+        ".vscode": true,
+        "**/analysis_options.yaml": true,
+        "devtools_options.yaml": true,
+        "README.md": true
+    },
+    "hide-files.files": []
+}
