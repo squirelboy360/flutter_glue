@@ -1,7 +1,6 @@
-import 'package:example_app/core/services/native/constants/modal_styles.dart';
+import 'package:example_app/core/services/native/utils/constants/modal/modal_configs.dart';
 import 'package:flutter/material.dart';
 import 'package:forui/forui.dart';
-
 import 'package:go_router/go_router.dart';
 
 import '../core/services/native/triggers/modal.dart';
@@ -13,21 +12,25 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return FScaffold(
       header: FHeader(
-        title: const Text('Flutter Template'),
+        title: const Text('Flutter'),
         actions: [
           IconButton(
             icon: const Icon(Icons.add),
             onPressed: () {
               try {
                 ModalService.showModalWithRoute(
-                  showNativeHeader: true,
-                  showCloseButton: true,
-                  headerTitle: "Example Title",
+                  const ModalConfig(
+                    arguments: {},
+                    headerTitle: 'Modal Title',
+                    isDismissible: true,
+                    showCloseButton: true,
+                    detents: ['large'],
+                    style: ModalStyle(
+                      backgroundColor: Colors.white,
+                    ),
+                  ),
                   route: '/example',
-                  arguments: {
-                    'img': 'https://example.com/image.png',
-                    'title': 'Example Title'
-                  },
+                  arguments: {},
                 );
               } catch (e) {
                 debugPrint('Error showing modal: $e');
@@ -41,39 +44,45 @@ class HomeScreen extends StatelessWidget {
             icon: FIcon(FAssets.icons.info),
             onPressed: () {
               ModalService.showModalWithRoute(
-                  route: '/license', arguments: {}, showNativeHeader: false);
+                const ModalConfig(
+                  // <-- Provide ModalConfig here
+
+                  arguments: {},
+                  showNativeHeader: false,
+                ),
+                route: '/license', // <-- Use route as named argument
+                arguments: {},
+              );
             },
           ),
         ],
       ),
-      content: ListView.builder(
-        itemCount: 100,
-        itemBuilder: (context, index) {
-         
-          return Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: GestureDetector(
-              onTap: () {
-                context.go('info');
-              },
-              child: FCard(
-               
-              ),
-            ),
-          );
+      content: GestureDetector(
+        onTap: () {
+          context.go('/license');
         },
+        child: SizedBox(height: 200, child: FCard()),
       ),
       footer: Padding(
         padding: const EdgeInsets.all(20.0),
         child: FButton(
-            onPress: () {
-              ModalService.showModalWithRoute(
-                  route: '/',
-                  arguments: {},
-                  configuration: const ModalConfiguration(
-                      presentationStyle: ModalPresentationStyle.fullScreen));
-            },
-            label: const Text("Scrollable Modal")),
+          onPress: () {
+            ModalService.showModalWithRoute(
+              const ModalConfig(
+                // <-- Provide ModalConfig here
+                isDismissible: true,
+                showCloseButton: true,
+                detents: ['large'],
+                style: ModalStyle(
+                  backgroundColor: Colors.white,
+                ),
+              ),
+              route: '/', // <-- Use route as named argument
+              arguments: {},
+            );
+          },
+          label: const Text("Scrollable Modal"),
+        ),
       ),
     );
   }
