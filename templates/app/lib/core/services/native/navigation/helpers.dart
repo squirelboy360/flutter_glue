@@ -1,21 +1,22 @@
-import 'package:example_app/core/services/native/navigation/models/native_tab_config.dart';
-import 'package:example_app/core/services/native/navigation/native_navigation_service.dart';
+import 'package:flutter/material.dart';
+import './models/native_tab_config.dart';
+import './native_navigation_service.dart';
 
 Future<void> setupTabs() async {
-    final tabs = [
-      const NativeTabConfig(
-        route: '/',
-        title: 'Home',
-        icon: 'house',
-        selectedIcon: 'house.fill',
-      ),
-      const NativeTabConfig(
-        route: '/example',
-        title: 'Example',
-        icon: 'star',
-        selectedIcon: 'star.fill',
-      ),
-    ];
+  final tabs = [
+    const NativeTabConfig(
+      route: '/',
+      title: 'Settings',
+      icon: Icons.settings,
+      selectedIcon: Icons.home,
+    ),
+    const NativeTabConfig(
+      route: '/example',
+      title: 'Example',
+      icon: Icons.star_outline,
+      selectedIcon: Icons.star,
+    ),
+  ];
 
-    await NativeNavigationService.setupTabs(tabs);
-  }
+  await NativeNavigationService.setupTabs(tabs);
+}

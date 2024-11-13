@@ -1,8 +1,10 @@
+import 'package:flutter/material.dart';
+
 class NativeTabConfig {
   final String route;
   final String title;
-  final String icon;
-  final String? selectedIcon;
+  final IconData icon;
+  final IconData? selectedIcon;
   final Map<String, dynamic>? arguments;
 
   const NativeTabConfig({
@@ -16,8 +18,15 @@ class NativeTabConfig {
   Map<String, dynamic> toMap() => {
     'route': route,
     'title': title,
-    'icon': icon,
-    if (selectedIcon != null) 'selectedIcon': selectedIcon,
+    'icon': _encodeIconData(icon),
+    if (selectedIcon != null) 'selectedIcon': _encodeIconData(selectedIcon!),
     if (arguments != null) 'arguments': arguments,
+  };
+
+  Map<String, dynamic> _encodeIconData(IconData icon) => {
+    'codePoint': icon.codePoint,
+    'fontFamily': icon.fontFamily,
+    'fontPackage': icon.fontPackage,
+    'matchTextDirection': icon.matchTextDirection,
   };
 }

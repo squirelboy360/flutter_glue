@@ -7,7 +7,6 @@ import 'package:example_app/core/routing/app_router.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  
   // Initialize router
   AppRouter.initialize();
   
@@ -36,3 +35,4 @@ class MyApp extends StatelessWidget {
     );
   }
 }
+

@@ -1,5 +1,5 @@
 // lib/core/routing/app_router.dart
-import 'dart:io';
+import 'package:example_app/core/services/native/navigation/helpers.dart';
 import 'package:example_app/core/services/native/navigation/models/native_navigation_config.dart.dart';
 import 'package:example_app/core/services/native/utils/constants/deps.dart';
 import 'package:example_app/core/services/ui_abstractions/screen.dart';
@@ -91,11 +91,10 @@ class AppRouter {
         //!  your routes end here
       ],
     );
-
-    if (Platform.isIOS) {
-      // _setupTabs();
-    }
-
+    // call setupTabs to setup the native tabs
+    setupTabs();
+    // on navigation change, update the native navigation
+    // notify stack
     _modalChannel.setMethodCallHandler(Deps.handleModalMethodCall);
   }
-}
+}   

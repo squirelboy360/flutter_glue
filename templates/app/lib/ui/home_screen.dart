@@ -12,7 +12,8 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return FScaffold(
       header: FHeader(
-        title: const Text('Flutter'),
+        title: const Text('Flutter+Native'),
+        
         actions: [
           IconButton(
             icon: const Icon(Icons.add),
@@ -57,11 +58,27 @@ class HomeScreen extends StatelessWidget {
           ),
         ],
       ),
-      content: GestureDetector(
-        onTap: () {
-          context.go('/license');
-        },
-        child: SizedBox(height: 200, child: FCard()),
+      content: Column(
+        children: [
+          GestureDetector(
+            onTap: () {
+              context.go('/license');
+            },
+            child: FCard(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  height: 150,
+                  margin: EdgeInsets.zero,
+                  decoration: const BoxDecoration(
+                      image: DecorationImage(fit:BoxFit.cover,
+                          image: NetworkImage(
+                              "https://pbs.twimg.com/media/FKNlhKZUcAEd7FY.jpg:large"))),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
       footer: Padding(
         padding: const EdgeInsets.all(20.0),

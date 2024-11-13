@@ -43,30 +43,41 @@ class ModalService {
   
 
   static Future<String?> _showNativeModal({
-    required String route,
-    required Map<String, String> arguments,
-    required bool showNativeHeader,
-    required bool showCloseButton,
-    String? headerTitle,
-    ModalConfiguration? configuration,
-  }) async {
-    try {
-      final Map<String, dynamic> modalArgs = {
-        'route': route,
-        'arguments': arguments,
-        'showNativeHeader': showNativeHeader.toString(),
-        'showCloseButton': showCloseButton.toString(),
-        'headerTitle': headerTitle,
-        ...configuration?.toMap() ?? const ModalConfiguration().toMap(),
-      };
+  required String route,
+  required Map<String, String> arguments,
+  required bool showNativeHeader,
+  required bool showCloseButton,
+  String? headerTitle,
+  ModalConfiguration? configuration,
+}) async {
+  try {
+    final Map<String, dynamic> modalArgs = {
+      'route': route,
+      'arguments': arguments,
+      'showNativeHeader': showNativeHeader.toString(),
+      'showCloseButton': showCloseButton.toString(),
+      'headerTitle': headerTitle,
+      ...configuration?.toMap() ?? const ModalConfiguration().toMap(),
+    };
 
-      final String? modalId = await _channel.invokeMethod('showModal', modalArgs);
-      return modalId;
-    } catch (e) {
-      debugPrint('Error showing native modal: $e');
-      return null;
-    }
+    // Add method call handler before showing modal
+    _channel.setMethodCallHandler((call) async {
+      switch (call.method) {
+        case 'setRoute':
+          final args = call.arguments as Map<dynamic, dynamic>;
+          final routeArgs = Map<String, String>.from(args['arguments'] as Map);
+          AppRouter.router.go(args['route'] as String, extra: routeArgs);
+          break;
+      }
+    });
+
+    final String? modalId = await _channel.invokeMethod('showModal', modalArgs);
+    return modalId;
+  } catch (e) {
+    debugPrint('Error showing native modal: $e');
+    return null;
   }
+}
 
   static Future<String?> _showMaterialModal({
     required String route,

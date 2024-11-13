@@ -10,7 +10,7 @@
 		1498D2341E8E89220040F4C2 /* GeneratedPluginRegistrant.m in Sources */ = {isa = PBXBuildFile; fileRef = 1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */; };
 		331C808B294A63AB00263BE5 /* RunnerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 331C807B294A618700263BE5 /* RunnerTests.swift */; };
 		3B3967161E833CAA004F5970 /* AppFrameworkInfo.plist in Resources */ = {isa = PBXBuildFile; fileRef = 3B3967151E833CAA004F5970 /* AppFrameworkInfo.plist */; };
-		3CB63B9A2CE34B330075BC9E /* AppTabBarController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CB63B992CE34B310075BC9E /* AppTabBarController.swift */; };
+		3CB63B9A2CE34B330075BC9E /* TabBarController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CB63B992CE34B310075BC9E /* TabBarController.swift */; };
 		3CB63B9F2CE34B6B0075BC9E /* ModalController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CB63B9E2CE34B680075BC9E /* ModalController.swift */; };
 		3CB63BA42CE34BE50075BC9E /*  ModalConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CB63BA32CE34BE30075BC9E /*  ModalConfiguration.swift */; };
 		3CB63BA92CE35A290075BC9E /* UIApplication+KeyWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CB63BA82CE35A1D0075BC9E /* UIApplication+KeyWindow.swift */; };
@@ -59,7 +59,7 @@
 		331C807B294A618700263BE5 /* RunnerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunnerTests.swift; sourceTree = "<group>"; };
 		331C8081294A63A400263BE5 /* RunnerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RunnerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		3B3967151E833CAA004F5970 /* AppFrameworkInfo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = AppFrameworkInfo.plist; path = Flutter/AppFrameworkInfo.plist; sourceTree = "<group>"; };
-		3CB63B992CE34B310075BC9E /* AppTabBarController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTabBarController.swift; sourceTree = "<group>"; };
+		3CB63B992CE34B310075BC9E /* TabBarController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabBarController.swift; sourceTree = "<group>"; };
 		3CB63B9E2CE34B680075BC9E /* ModalController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModalController.swift; sourceTree = "<group>"; };
 		3CB63BA32CE34BE30075BC9E /*  ModalConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = " ModalConfiguration.swift"; sourceTree = "<group>"; };
 		3CB63BA82CE35A1D0075BC9E /* UIApplication+KeyWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UIApplication+KeyWindow.swift"; sourceTree = "<group>"; };
@@ -120,7 +120,7 @@
 				3CB63BB62CE36F940075BC9E /* Transitions */,
 				3CB63BB42CE36F510075BC9E /* NavigationChannel.swift */,
 				3CB63BAC2CE35CBA0075BC9E /* NavigationStyle.swift */,
-				3CB63B992CE34B310075BC9E /* AppTabBarController.swift */,
+				3CB63B992CE34B310075BC9E /* TabBarController.swift */,
 			);
 			path = Navigation;
 			sourceTree = "<group>";
@@ -441,7 +441,7 @@
 				3CB63BBA2CE36FF00075BC9E /* ModalStyle.swift in Sources */,
 				74858FAF1ED2DC5600515810 /* AppDelegate.swift in Sources */,
 				3CB63BB52CE36F530075BC9E /* NavigationChannel.swift in Sources */,
-				3CB63B9A2CE34B330075BC9E /* AppTabBarController.swift in Sources */,
+				3CB63B9A2CE34B330075BC9E /* TabBarController.swift in Sources */,
 				3CB63BA92CE35A290075BC9E /* UIApplication+KeyWindow.swift in Sources */,
 				3CB63BA42CE34BE50075BC9E /*  ModalConfiguration.swift in Sources */,
 				3CB63BBC2CE373D70075BC9E /* NavigationTheme.swift in Sources */,
