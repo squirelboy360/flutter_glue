@@ -5,68 +5,92 @@ import Flutter
 class AppDelegate: FlutterAppDelegate {
     private var navigationChannel: NavigationChannel?
     private var modalController: ModalController?
+    private var navigationCoordinator: NavigationCoordinator?
+    
+    // Single engine instance maintained throughout app lifecycle
     private lazy var flutterEngine: FlutterEngine = {
         let engine = FlutterEngine(name: "main_engine")
-        engine.run() // Run the engine when it's created
+        engine.run()
         return engine
     }()
-
-    private var flutterViewController: FlutterViewController?
-
+    
     override func application(
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
     ) -> Bool {
+        // Register plugins once
         GeneratedPluginRegistrant.register(with: flutterEngine)
-
-        // Initialize FlutterViewController with the existing FlutterEngine
-        flutterViewController = FlutterViewController(engine: flutterEngine, nibName: nil, bundle: nil)
         
-        // Set up the root view controller and navigation controller
-        let navigationController = UINavigationController(rootViewController: flutterViewController!)
+        // Create main Flutter view controller
+        let mainFlutterViewController = FlutterViewController(
+            engine: flutterEngine,
+            nibName: nil,
+            bundle: nil
+        )
+        
+        // Create root navigation controller
+        let navigationController = UINavigationController(rootViewController: mainFlutterViewController)
+        
+        // Create and configure tab controller
         let tabController = UITabBarController()
-
-        // Set up the Home Tab with the navigation controller
-        navigationController.tabBarItem = UITabBarItem(
-            title: "Home",
-            image: UIImage(systemName: "house"),
-            selectedImage: UIImage(systemName: "house.fill")
-        )
-
-        // Create another example view controller for testing
-        let secondViewController = UIViewController()
-        let secondNavController = UINavigationController(rootViewController: secondViewController)
-        secondNavController.tabBarItem = UITabBarItem(
-            title: "Example",
-            image: UIImage(systemName: "star"),
-            selectedImage: UIImage(systemName: "star.fill")
-        )
-
-        // Configure tabs
-        tabController.viewControllers = [navigationController, secondNavController]
+        tabController.viewControllers = [navigationController]
         tabController.delegate = self
-
-        // Set up channels
+        
+        // Set up navigation channel first (it's our main coordinator)
         navigationChannel = NavigationChannel.shared
-        navigationChannel?.setup(with: flutterEngine, controller: flutterViewController!, tabController: tabController)
-
+        navigationChannel?.setup(with: flutterEngine, controller: mainFlutterViewController, tabController: tabController)
+        
+        // Set up navigation coordinator
+        navigationCoordinator = NavigationCoordinator(
+            navigationController: navigationController,
+            flutterEngine: flutterEngine,
+            navigationDelegate: navigationChannel!
+        )
+        
+        // Set up modal controller last
         modalController = ModalController.shared
-        modalController?.setup(with: flutterEngine, controller: flutterViewController!)
-
-        // Set root view
+        modalController?.setup(with: flutterEngine, controller: mainFlutterViewController)
+        
+        // Configure window
         self.window = UIWindow(frame: UIScreen.main.bounds)
         self.window?.rootViewController = tabController
         self.window?.makeKeyAndVisible()
-
+        
+        // Set up hot reload observer
+        setupHotReloadSupport()
+        
         return super.application(application, didFinishLaunchingWithOptions: launchOptions)
     }
     
-    // You no longer need to detach the engine explicitly. Just ensure each view controller uses the engine correctly.
+    private func setupHotReloadSupport() {
+        NotificationCenter.default.addObserver(
+            forName: NSNotification.Name("flutter/hotReload"),
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.handleHotReload()
+        }
+    }
+    
+    private func handleHotReload() {
+        // Notify channel to refresh current route
+        navigationChannel?.refreshCurrentRoute()
+        
+        // Let modal controller handle its own hot reload
+        // (It's already set up with hot reload support)
+    }
 }
 
+// MARK: - UITabBarControllerDelegate
 extension AppDelegate: UITabBarControllerDelegate {
     func tabBarController(_ tabBarController: UITabBarController, didSelect viewController: UIViewController) {
+        guard let navController = viewController as? UINavigationController,
+              let flutterVC = navController.viewControllers.first as? FlutterViewController else {
+            return
+        }
+        
+        // Let navigation channel handle tab change
         let route = tabBarController.selectedIndex == 0 ? "/" : "/example"
-        navigationChannel?.channel?.invokeMethod("setRoute", arguments: ["route": route, "arguments": [:]])
+        navigationChannel?.handleRouteChange(route)
     }
 }

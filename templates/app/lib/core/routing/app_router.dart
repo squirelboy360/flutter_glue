@@ -25,23 +25,14 @@ class AppRouter {
         GoRoute(
           path: '/',
           builder: (context, state) {
-            return const NativeScreen(
-              title: 'Home',
-              rightButtons: [
-                NativeBarButton(
-                  id: 'add',
-                  systemName: 'plus',
-                ),
-              ],
-              child: Wrapper(child: HomeScreen()),
-            );
+            return Wrapper(child: HomeScreen());
           },
         ),
 
         GoRoute(
           path: '/license',
           builder: (context, state) {
-            return const Wrapper(child: LicensePage());
+            return Wrapper(child: LicensePage());
           },
         ),
 
@@ -49,19 +40,10 @@ class AppRouter {
           path: '/example',
           builder: (context, state) {
             final args = state.extra as Map<String, String>? ?? {};
-            return NativeScreen(
-              title: args['title'] ?? 'Example',
-              rightButtons: const [
-                NativeBarButton(
-                  id: 'share',
-                  systemName: 'square.and.arrow.up',
-                ),
-              ],
-              child: Wrapper(
-                child: ExampleScreen(
-                  img: args['img'] ?? '',
-                  title: args['title'] ?? '',
-                ),
+            return Wrapper(
+              child: ExampleScreen(
+                img: args['img'] ?? '',
+                title: args['title'] ?? '',
               ),
             );
           },
@@ -71,19 +53,10 @@ class AppRouter {
           path: '/example',
           builder: (context, state) {
             final args = state.extra as Map<String, String>? ?? {};
-            return NativeScreen(
-              title: args['title'] ?? 'test',
-              rightButtons: const [
-                NativeBarButton(
-                  id: 'share',
-                  systemName: 'square.and.arrow.up',
-                ),
-              ],
-              child: Wrapper(
-                child: ExampleScreen(
-                  img: args['img'] ?? '',
-                  title: args['title'] ?? '',
-                ),
+            return Wrapper(
+              child: ExampleScreen(
+                img: args['img'] ?? '',
+                title: args['title'] ?? '',
               ),
             );
           },
@@ -97,4 +70,4 @@ class AppRouter {
     // notify stack
     _modalChannel.setMethodCallHandler(Deps.handleModalMethodCall);
   }
-}   
+}
