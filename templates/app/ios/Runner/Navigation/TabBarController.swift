@@ -3,7 +3,8 @@ import UIKit
 
 class TabBarController: UITabBarController {
     private let flutterEngine: FlutterEngine
-    private weak var channel: FlutterMethodChannel?
+    weak var navigationDelegate: NavigationChannel?
+    private var routeConfiguration: [Int: String] = [:]
     
     init(engine: FlutterEngine) {
         self.flutterEngine = engine
@@ -17,62 +18,113 @@ class TabBarController: UITabBarController {
     func configureTabs(with tabConfigs: [[String: Any]]) {
         var viewControllers: [UIViewController] = []
         
-        // Create a single FlutterViewController that will be shared
-        let flutterViewController = FlutterViewController(
-            engine: flutterEngine,
-            nibName: nil,
-            bundle: nil
-        )
-        
-        // Wrap it in a navigation controller
-        let mainNavController = UINavigationController(rootViewController: flutterViewController)
-        
-        // Configure the first tab
-        if let firstTab = tabConfigs.first,
-           let title = firstTab["title"] as? String {
-            mainNavController.tabBarItem = UITabBarItem(
-                title: title,
-                image: UIImage(systemName: "circle"),
-                selectedImage: UIImage(systemName: "circle.fill")
-            )
-        }
-        
-        viewControllers.append(mainNavController)
-        
-        // Add additional tabs if needed (they will share the same Flutter engine)
-        for (index, config) in tabConfigs.enumerated() where index > 0 {
-            if let title = config["title"] as? String {
-                // Create a placeholder view controller for additional tabs
-                let additionalVC = UIViewController()
-                additionalVC.tabBarItem = UITabBarItem(
-                    title: title,
-                    image: UIImage(systemName: "circle"),
-                    selectedImage: UIImage(systemName: "circle.fill")
-                )
-                viewControllers.append(additionalVC)
+        for (index, config) in tabConfigs.enumerated() {
+            if let route = config["route"] as? String {
+                routeConfiguration[index] = route
             }
+            
+            let flutterVC = FlutterViewController(
+                engine: flutterEngine,
+                nibName: nil,
+                bundle: nil
+            )
+            
+            let navController = UINavigationController(rootViewController: flutterVC)
+            
+            // Configure navigation bar appearance if provided
+            if let navStyle = config["navigationStyle"] as? [String: Any] {
+                configureNavigationBar(navController.navigationBar, with: navStyle)
+            }
+            
+            // Configure tab appearance
+            configureTabItem(for: navController, with: config)
+            
+            viewControllers.append(navController)
         }
         
         self.viewControllers = viewControllers
         self.selectedIndex = 0
         self.delegate = self
+        
+        // Set initial route
+        if let initialRoute = routeConfiguration[0] {
+            navigationDelegate?.handleRouteChange(initialRoute)
+        }
     }
     
-    override func viewDidLoad() {
-        super.viewDidLoad()
-        tabBar.isTranslucent = true
-        tabBar.backgroundColor = .systemBackground
+    private func configureTabItem(for controller: UINavigationController, with config: [String: Any]) {
+        // Extract tab configuration
+        let title = config["title"] as? String
+        
+        if let iconData = config["iconData"] as? [String: Any] {
+            // Handle different types of icon data
+            if let imageData = iconData["data"] as? FlutterStandardTypedData {
+                // Direct image data
+                let icon = UIImage(data: imageData.data)?.withRenderingMode(.alwaysTemplate)
+                let selectedIcon = config["selectedIconData"].flatMap {
+                    ($0 as? FlutterStandardTypedData).flatMap {
+                        UIImage(data: $0.data)?.withRenderingMode(.alwaysTemplate)
+                    }
+                }
+                
+                controller.tabBarItem = UITabBarItem(
+                    title: title,
+                    image: icon,
+                    selectedImage: selectedIcon
+                )
+            } else if let systemName = iconData["systemName"] as? String {
+                // System icon name
+                controller.tabBarItem = UITabBarItem(
+                    title: title,
+                    image: UIImage(systemName: systemName),
+                    selectedImage: UIImage(systemName: (iconData["selectedSystemName"] as? String) ?? systemName)
+                )
+            }
+        }
+    }
+    
+    private func configureNavigationBar(_ navigationBar: UINavigationBar, with style: [String: Any]) {
+        if let backgroundColor = style["backgroundColor"] as? Int {
+            let color = UIColor(
+                red: CGFloat((backgroundColor >> 16) & 0xFF) / 255.0,
+                green: CGFloat((backgroundColor >> 8) & 0xFF) / 255.0,
+                blue: CGFloat(backgroundColor & 0xFF) / 255.0,
+                alpha: CGFloat((backgroundColor >> 24) & 0xFF) / 255.0
+            )
+            navigationBar.backgroundColor = color
+        }
+        
+        if let isTranslucent = style["isTranslucent"] as? Bool {
+            navigationBar.isTranslucent = isTranslucent
+        }
+        
+        // Configure other styling as needed
+        let appearance = UINavigationBarAppearance()
+        appearance.configureWithDefaultBackground()
+        
+        if let titleColor = style["titleColor"] as? Int {
+            let color = UIColor(
+                red: CGFloat((titleColor >> 16) & 0xFF) / 255.0,
+                green: CGFloat((titleColor >> 8) & 0xFF) / 255.0,
+                blue: CGFloat(titleColor & 0xFF) / 255.0,
+                alpha: CGFloat((titleColor >> 24) & 0xFF) / 255.0
+            )
+            appearance.titleTextAttributes = [.foregroundColor: color]
+        }
+        
+        navigationBar.standardAppearance = appearance
+        navigationBar.scrollEdgeAppearance = appearance
+        if #available(iOS 15.0, *) {
+            navigationBar.compactScrollEdgeAppearance = appearance
+        }
     }
 }
 
 extension TabBarController: UITabBarControllerDelegate {
     func tabBarController(_ tabBarController: UITabBarController, didSelect viewController: UIViewController) {
-        let route = selectedIndex == 0 ? "/" : "/example"
+        guard let route = routeConfiguration[selectedIndex] else { return }
         
-        // Get the channel from NavigationChannel since it's properly set up there
-        NavigationChannel.shared.channel?.invokeMethod(
-            "setRoute",
-            arguments: ["route": route, "arguments": [:]]
-        )
+        // Notify navigation channel of tab change
+        navigationDelegate?.handleRouteChange(route)
     }
 }

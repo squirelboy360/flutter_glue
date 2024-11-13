@@ -3,146 +3,88 @@ import UIKit
 
 class ModalController {
     static let shared = ModalController()
-    
-    // Change channel to internal access
     var channel: FlutterMethodChannel?
     
-    private var activeModals: [String: UINavigationController] = [:]
+    private var activeModals: [String: (controller: UINavigationController, route: String)] = [:]
     private var modalCounter: Int = 0
     private weak var flutterEngine: FlutterEngine?
-    private weak var mainFlutterViewController: FlutterViewController?
+    private weak var navigationDelegate: NavigationChannel?
+    
+    // Keep track of previous route before modal
+    private var previousRoute: String = "/"
     
     private init() {}
     
     func setup(with engine: FlutterEngine, controller: FlutterViewController) {
         self.flutterEngine = engine
-        self.mainFlutterViewController = controller
+        self.navigationDelegate = NavigationChannel.shared
         
         channel = FlutterMethodChannel(
             name: "native_modal_channel",
             binaryMessenger: controller.binaryMessenger
         )
         
+        setupMethodHandler()
+    }
+    
+    private func setupMethodHandler() {
         channel?.setMethodCallHandler { [weak self] call, result in
             guard let self = self else { return }
             
             switch call.method {
             case "showModal":
-                guard let arguments = call.arguments as? [String: Any],
-                      let route = arguments["route"] as? String,
-                      let params = arguments["arguments"] as? [String: String] else {
-                    result(FlutterError(code: "INVALID_ARGUMENTS",
-                                      message: "Invalid route or arguments",
-                                      details: nil))
-                    return
-                }
-                
-                let configuration = ModalConfiguration(from: arguments)
-                self.showModal(route: route, arguments: params, config: configuration) { modalId in
+                self.handleShowModal(call.arguments) { modalId in
                     result(modalId)
                 }
-                
             case "dismissModal":
-                guard let arguments = call.arguments as? [String: Any],
-                      let modalId = arguments["modalId"] as? String else {
-                    result(FlutterError(code: "INVALID_ARGUMENTS",
-                                      message: "Modal ID required",
-                                      details: nil))
-                    return
-                }
-                
-                self.dismissModal(modalId: modalId) { success in
+                self.handleDismissModal(call.arguments) { success in
                     result(success)
                 }
-                
             case "dismissAllModals":
-                let count = self.dismissAllModals()
-                result(["dismissedCount": count])
-                
+                self.handleDismissAllModals() { count in
+                    result(["dismissedCount": count])
+                }
             default:
                 result(FlutterMethodNotImplemented)
             }
         }
     }
     
-    private func showModal(
-        route: String,
-        arguments: [String: String],
-        config: ModalConfiguration,
-        completion: @escaping (String) -> Void
-    ) {
-        guard let flutterEngine = self.flutterEngine else { return }
+    private func handleShowModal(_ arguments: Any?, completion: @escaping (String?) -> Void) {
+        guard let args = arguments as? [String: Any],
+              let route = args["route"] as? String,
+              let engine = flutterEngine else {
+            completion(nil)
+            return
+        }
         
         modalCounter += 1
         let modalId = "modal_\(modalCounter)"
         
-        let flutterViewController = FlutterViewController(
-            engine: flutterEngine,
-            nibName: nil,
-            bundle: nil
-        )
+        // Store current route before showing modal
+        previousRoute = NavigationChannel.shared.currentRoute
         
-        let navController = UINavigationController(rootViewController: flutterViewController)
-        activeModals[modalId] = navController
+        // Create Flutter view for modal
+        let flutterVC = FlutterViewController(engine: engine, nibName: nil, bundle: nil)
+        let navController = UINavigationController(rootViewController: flutterVC)
         
-        // Configure modal presentation
-        switch config.presentationStyle {
-        case "fullScreen":
-            navController.modalPresentationStyle = .fullScreen
-        case "formSheet":
-            navController.modalPresentationStyle = .formSheet
-        default:
-            navController.modalPresentationStyle = .pageSheet
-            if #available(iOS 15.0, *) {
-                if let sheet = navController.sheetPresentationController {
-                    var detents: [UISheetPresentationController.Detent] = []
-                    for detent in config.detents {
-                        switch detent {
-                        case "medium":
-                            detents.append(.medium())
-                        default:
-                            detents.append(.large())
-                        }
-                    }
-                    sheet.detents = detents
-                    sheet.prefersGrabberVisible = config.showDragIndicator
-                }
-            }
-        }
+        // Configure modal
+        configureModal(navController, with: args)
         
-        navController.isModalInPresentation = !config.isDismissible
+        // Store modal info
+        activeModals[modalId] = (navController, route)
         
-        // Configure appearance
-        if let backgroundColor = config.style.backgroundColor {
-            navController.view.backgroundColor = backgroundColor
-        }
-        
-        // Configure navigation bar
-        navController.navigationBar.isHidden = !config.showHeader
-        if config.showHeader {
-            flutterViewController.title = config.headerTitle
-            
-            if config.showCloseButton {
-                let closeButton = UIBarButtonItem(
-                    title: "Close",
-                    style: .done,
-                    target: self,
-                    action: #selector(closeModalTapped(_:))
-                )
-                closeButton.accessibilityIdentifier = modalId
-                flutterViewController.navigationItem.rightBarButtonItem = closeButton
-            }
-        }
-        
-        // Set route before presenting
+        // Set route for the modal content
         channel?.invokeMethod("setRoute", arguments: [
             "route": route,
-            "arguments": arguments
+            "arguments": args["arguments"] ?? [:],
+            "modalId": modalId
         ])
         
-        // Present the modal
+        // Present modal
         DispatchQueue.main.async { [weak self] in
             guard let rootViewController = UIApplication.shared.keyWindow?.rootViewController else {
+                completion(nil)
                 return
             }
             
@@ -152,46 +94,119 @@ class ModalController {
         }
     }
     
-    @objc private func closeModalTapped(_ sender: UIBarButtonItem) {
-        guard let modalId = sender.accessibilityIdentifier else { return }
-        dismissModal(modalId: modalId, completion: nil)
-    }
-    
-    private func dismissModal(modalId: String, completion: ((Bool) -> Void)?) {
-        guard let controller = activeModals[modalId] else {
-            completion?(false)
+    private func handleDismissModal(_ arguments: Any?, completion: @escaping (Bool) -> Void) {
+        guard let args = arguments as? [String: Any],
+              let modalId = args["modalId"] as? String,
+              let modalInfo = activeModals[modalId] else {
+            completion(false)
             return
         }
         
-        // Notify Flutter to prepare for dismissal
-        channel?.invokeMethod("setRoute", arguments: [
-            "route": "/",  // or your default route
-            "arguments": [:]
-        ]) { [weak self] _ in
-            guard let self = self else { return }
-            
-            DispatchQueue.main.async {
-                // Dismiss the modal
-                controller.dismiss(animated: true) {
-                    self.activeModals.removeValue(forKey: modalId)
-                    
-                    // Refresh main Flutter view
-                    if let mainVC = self.mainFlutterViewController {
-                        mainVC.view.setNeedsLayout()
-                        mainVC.view.layoutIfNeeded()
-                    }
-                    
-                    completion?(true)
+        dismissModal(modalInfo.controller, modalId: modalId) { [weak self] success in
+            if success {
+                // Restore previous route
+                self?.navigationDelegate?.handleRouteChange(self?.previousRoute ?? "/")
+            }
+            completion(success)
+        }
+    }
+    
+    private func handleDismissAllModals(completion: @escaping (Int) -> Void) {
+        let count = activeModals.count
+        let group = DispatchGroup()
+        
+        for (modalId, modalInfo) in activeModals {
+            group.enter()
+            dismissModal(modalInfo.controller, modalId: modalId) { _ in
+                group.leave()
+            }
+        }
+        
+        group.notify(queue: .main) { [weak self] in
+            // Restore previous route after all modals are dismissed
+            self?.navigationDelegate?.handleRouteChange(self?.previousRoute ?? "/")
+            completion(count)
+        }
+    }
+    
+    private func configureModal(_ controller: UINavigationController, with config: [String: Any]) {
+        // Configure presentation style
+        if let style = config["presentationStyle"] as? String {
+            switch style {
+            case "fullScreen":
+                controller.modalPresentationStyle = .fullScreen
+            case "formSheet":
+                controller.modalPresentationStyle = .formSheet
+            default:
+                controller.modalPresentationStyle = .pageSheet
+                if #available(iOS 15.0, *) {
+                    configureSheet(controller.sheetPresentationController, with: config)
                 }
+            }
+        }
+        
+        // Configure dismissibility
+        if let isDismissible = config["isDismissible"] as? Bool {
+            controller.isModalInPresentation = !isDismissible
+        }
+        
+        // Configure navigation bar
+        if let showHeader = config["showHeader"] as? Bool, showHeader {
+            if let headerTitle = config["headerTitle"] as? String {
+                controller.viewControllers.first?.title = headerTitle
+            }
+            
+            if let showCloseButton = config["showCloseButton"] as? Bool,
+               showCloseButton,
+               let flutterVC = controller.viewControllers.first {
+                let closeButton = UIBarButtonItem(
+                    title: "Close",
+                    style: .done,
+                    target: self,
+                    action: #selector(closeModalTapped(_:))
+                )
+                closeButton.accessibilityIdentifier = String(modalCounter)
+                flutterVC.navigationItem.rightBarButtonItem = closeButton
+            }
+        } else {
+            controller.navigationBar.isHidden = true
+        }
+    }
+    
+    @available(iOS 15.0, *)
+    private func configureSheet(_ sheet: UISheetPresentationController?, with config: [String: Any]) {
+        guard let sheet = sheet else { return }
+        
+        if let detents = config["detents"] as? [String] {
+            sheet.detents = detents.compactMap { detent in
+                switch detent {
+                case "medium": return .medium()
+                case "large": return .large()
+                default: return nil
+                }
+            }
+        }
+        
+        if let showDragIndicator = config["showDragIndicator"] as? Bool {
+            sheet.prefersGrabberVisible = showDragIndicator
+        }
+    }
+    
+    private func dismissModal(
+        _ controller: UINavigationController,
+        modalId: String,
+        completion: @escaping (Bool) -> Void
+    ) {
+        DispatchQueue.main.async {
+            controller.dismiss(animated: true) { [weak self] in
+                self?.activeModals.removeValue(forKey: modalId)
+                completion(true)
             }
         }
     }
     
-    private func dismissAllModals() -> Int {
-        let count = activeModals.count
-        for (modalId, _) in activeModals {
-            dismissModal(modalId: modalId, completion: nil)
-        }
-        return count
+    @objc private func closeModalTapped(_ sender: UIBarButtonItem) {
+        guard let modalId = sender.accessibilityIdentifier.map({ "modal_\($0)" }) else { return }
+        handleDismissModal(["modalId": modalId]) { _ in }
     }
 }
