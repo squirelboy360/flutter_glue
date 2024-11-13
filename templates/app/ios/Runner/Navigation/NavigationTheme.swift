@@ -22,22 +22,55 @@ struct NavigationTheme {
         barStyle = .default
     }
     
-    // Apply method to configure UINavigationBar
+    var tabBarTintColor: UIColor {
+        return tintColor
+    }
+    
+    var tabBarUnselectedItemTintColor: UIColor {
+        return titleColor.withAlphaComponent(0.6)
+    }
+    
     func apply(to navigationBar: UINavigationBar) {
-        navigationBar.barTintColor = backgroundColor
-        navigationBar.tintColor = tintColor
-        navigationBar.barStyle = barStyle
-        navigationBar.titleTextAttributes = [
+        let appearance = UINavigationBarAppearance()
+        appearance.configureWithDefaultBackground()
+        appearance.backgroundColor = backgroundColor
+        appearance.titleTextAttributes = [
             .foregroundColor: titleColor,
             .font: titleFont
         ]
+        
+        navigationBar.standardAppearance = appearance
+        navigationBar.scrollEdgeAppearance = appearance
+        if #available(iOS 15.0, *) {
+            navigationBar.compactScrollEdgeAppearance = appearance
+        }
+        
+        navigationBar.tintColor = tintColor
+        navigationBar.barStyle = barStyle
     }
     
-    // Apply method to configure UITabBar
     func apply(to tabBar: UITabBar) {
-        tabBar.barTintColor = backgroundColor
-        tabBar.tintColor = tintColor
-        tabBar.unselectedItemTintColor = titleColor.withAlphaComponent(0.6)
-        tabBar.barStyle = barStyle
+        if #available(iOS 15.0, *) {
+            let appearance = UITabBarAppearance()
+            appearance.configureWithDefaultBackground()
+            appearance.backgroundColor = backgroundColor
+            
+            appearance.stackedLayoutAppearance.normal.iconColor = tabBarUnselectedItemTintColor
+            appearance.stackedLayoutAppearance.normal.titleTextAttributes = [
+                .foregroundColor: tabBarUnselectedItemTintColor
+            ]
+            
+            appearance.stackedLayoutAppearance.selected.iconColor = tabBarTintColor
+            appearance.stackedLayoutAppearance.selected.titleTextAttributes = [
+                .foregroundColor: tabBarTintColor
+            ]
+            
+            tabBar.standardAppearance = appearance
+            tabBar.scrollEdgeAppearance = appearance
+        } else {
+            tabBar.barTintColor = backgroundColor
+            tabBar.tintColor = tabBarTintColor
+            tabBar.unselectedItemTintColor = tabBarUnselectedItemTintColor
+        }
     }
 }
