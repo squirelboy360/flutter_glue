@@ -68,7 +68,7 @@ class NativeNavigationService {
   static Future<Map<String, dynamic>> _renderIconData(IconData icon) async {
     final pictureRecorder = ui.PictureRecorder();
     final canvas = Canvas(pictureRecorder);
-    final size = const Size(24.0, 24.0);
+    const size = Size(24.0, 24.0);
 
     final paragraphBuilder = ui.ParagraphBuilder(ui.ParagraphStyle(
       fontFamily: icon.fontFamily,
