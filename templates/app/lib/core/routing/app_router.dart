@@ -25,14 +25,14 @@ class AppRouter {
         GoRoute(
           path: '/',
           builder: (context, state) {
-            return Wrapper(child: HomeScreen());
+            return const Wrapper(child: HomeScreen());
           },
         ),
 
         GoRoute(
           path: '/license',
           builder: (context, state) {
-            return Wrapper(child: LicensePage());
+            return const Wrapper(child: LicensePage());
           },
         ),
 

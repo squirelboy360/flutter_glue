@@ -5,9 +5,6 @@ import Flutter
 class AppDelegate: FlutterAppDelegate {
     private var navigationChannel: NavigationChannel?
     private var modalController: ModalController?
-    private var navigationCoordinator: NavigationCoordinator?
-    
-    // Single engine instance maintained throughout app lifecycle
     private lazy var flutterEngine: FlutterEngine = {
         let engine = FlutterEngine(name: "main_engine")
         engine.run()
@@ -18,36 +15,47 @@ class AppDelegate: FlutterAppDelegate {
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
     ) -> Bool {
-        // Register plugins once
+        // Initialize Flutter engine
         GeneratedPluginRegistrant.register(with: flutterEngine)
         
-        // Create main Flutter view controller
+        // Create the main Flutter view controller
         let mainFlutterViewController = FlutterViewController(
             engine: flutterEngine,
             nibName: nil,
             bundle: nil
         )
         
-        // Create root navigation controller
+        // Create navigation controller for Flutter view
         let navigationController = UINavigationController(rootViewController: mainFlutterViewController)
         
-        // Create and configure tab controller
-        let tabController = UITabBarController()
-        tabController.viewControllers = [navigationController]
-        tabController.delegate = self
+        // Create TabBarController
+        let tabController = CustomTabBarController(engine: flutterEngine)
         
-        // Set up navigation channel first (it's our main coordinator)
+        // Configure first tab with Flutter content
+        navigationController.tabBarItem = UITabBarItem(
+            title: "Home",
+            image: UIImage(systemName: "house"),
+            selectedImage: UIImage(systemName: "house.fill")
+        )
+        
+        // Create second tab (example)
+        let secondViewController = UIViewController()
+        let secondNavController = UINavigationController(rootViewController: secondViewController)
+        secondNavController.tabBarItem = UITabBarItem(
+            title: "Example",
+            image: UIImage(systemName: "star"),
+            selectedImage: UIImage(systemName: "star.fill")
+        )
+        
+        // Set up tab bar controller
+        tabController.viewControllers = [navigationController, secondNavController]
+        tabController.delegate = tabController
+        
+        // Set up navigation channel with tab controller
         navigationChannel = NavigationChannel.shared
         navigationChannel?.setup(with: flutterEngine, controller: mainFlutterViewController, tabController: tabController)
         
-        // Set up navigation coordinator
-        navigationCoordinator = NavigationCoordinator(
-            navigationController: navigationController,
-            flutterEngine: flutterEngine,
-            navigationDelegate: navigationChannel!
-        )
-        
-        // Set up modal controller last
+        // Set up modal controller
         modalController = ModalController.shared
         modalController?.setup(with: flutterEngine, controller: mainFlutterViewController)
         
@@ -56,41 +64,6 @@ class AppDelegate: FlutterAppDelegate {
         self.window?.rootViewController = tabController
         self.window?.makeKeyAndVisible()
         
-        // Set up hot reload observer
-        setupHotReloadSupport()
-        
         return super.application(application, didFinishLaunchingWithOptions: launchOptions)
-    }
-    
-    private func setupHotReloadSupport() {
-        NotificationCenter.default.addObserver(
-            forName: NSNotification.Name("flutter/hotReload"),
-            object: nil,
-            queue: .main
-        ) { [weak self] _ in
-            self?.handleHotReload()
-        }
-    }
-    
-    private func handleHotReload() {
-        // Notify channel to refresh current route
-        navigationChannel?.refreshCurrentRoute()
-        
-        // Let modal controller handle its own hot reload
-        // (It's already set up with hot reload support)
-    }
-}
-
-// MARK: - UITabBarControllerDelegate
-extension AppDelegate: UITabBarControllerDelegate {
-    func tabBarController(_ tabBarController: UITabBarController, didSelect viewController: UIViewController) {
-        guard let navController = viewController as? UINavigationController,
-              let flutterVC = navController.viewControllers.first as? FlutterViewController else {
-            return
-        }
-        
-        // Let navigation channel handle tab change
-        let route = tabBarController.selectedIndex == 0 ? "/" : "/example"
-        navigationChannel?.handleRouteChange(route)
     }
 }

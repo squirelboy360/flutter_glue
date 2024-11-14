@@ -4,21 +4,19 @@ import UIKit
 class NavigationChannel {
     static let shared = NavigationChannel()
     var channel: FlutterMethodChannel?
+    var currentRoute: String = "/"
     
     private weak var flutterEngine: FlutterEngine?
-    private var navigationStack: [String] = ["/"]
     private weak var rootNavigationController: UINavigationController?
-    private weak var tabBarController: UITabBarController?
-    private var currentRoute: String = "/"
+    private weak var tabBarController: CustomTabBarController?
+    private var navigationStack: [String] = ["/"]
     
     private init() {}
     
-    func setup(with engine: FlutterEngine, controller: FlutterViewController, tabController: UITabBarController) {
+    func setup(with engine: FlutterEngine, controller: FlutterViewController, tabController: CustomTabBarController) {
         self.flutterEngine = engine
+        self.rootNavigationController = controller.navigationController
         self.tabBarController = tabController
-        
-        let rootNavController = UINavigationController(rootViewController: controller)
-        self.rootNavigationController = rootNavController
         
         channel = FlutterMethodChannel(
             name: "native_navigation_channel",
@@ -26,30 +24,34 @@ class NavigationChannel {
         )
         
         setupMethodHandler()
+        
+        DispatchQueue.main.async {
+            self.handleRouteChange("/")
+        }
     }
     
     private func setupMethodHandler() {
-        channel?.setMethodCallHandler { [weak self] call, result in
+        channel?.setMethodCallHandler { [weak self] (call: FlutterMethodCall, result: @escaping FlutterResult) in
             guard let self = self else { return }
             
             switch call.method {
             case "setupTabs":
-                self.handleSetupTabs(call.arguments, result: result)
+                self.handleSetupTabs(arguments: call.arguments, result: result)
             case "pushRoute":
-                self.handlePushRoute(call.arguments, result: result)
+                self.handlePushRoute(arguments: call.arguments, result: result)
             case "popRoute":
                 self.handlePopRoute(result: result)
             case "updateNavigation":
-                self.handleUpdateNavigation(call.arguments, result: result)
+                self.handleUpdateNavigation(arguments: call.arguments, result: result)
             case "updateTheme":
-                self.handleUpdateTheme(call.arguments, result: result)
+                self.handleUpdateTheme(arguments: call.arguments, result: result)
             default:
                 result(FlutterMethodNotImplemented)
             }
         }
     }
     
-    private func handlePushRoute(_ arguments: Any?, result: @escaping FlutterResult) {
+    private func handlePushRoute(arguments: Any?, result: @escaping FlutterResult) {
         guard let args = arguments as? [String: Any],
               let route = args["route"] as? String,
               let engine = flutterEngine else {
@@ -57,28 +59,27 @@ class NavigationChannel {
             return
         }
         
-        navigationStack.append(route)
-        currentRoute = route
+        // Detach engine from current VC
+        engine.viewController = nil
         
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
             
-            // Create new route view
             let flutterVC = FlutterViewController(engine: engine, nibName: nil, bundle: nil)
             
             if let title = args["title"] as? String {
                 flutterVC.title = title
             }
             
-            // Configure navigation item
-            if let config = args["navigationConfig"] as? [String: Any] {
-                self.configureNavigationItem(for: flutterVC, with: config)
+            // Configure navigation buttons if needed
+            if let navConfig = args["navigationConfig"] as? [String: Any] {
+                self.configureNavigationItems(for: flutterVC, with: navConfig)
             }
             
-            // Push to native stack
             self.rootNavigationController?.pushViewController(flutterVC, animated: true)
+            self.navigationStack.append(route)
+            self.currentRoute = route
             
-            // Notify Flutter of route change
             self.channel?.invokeMethod("setRoute", arguments: [
                 "route": route,
                 "arguments": args["arguments"] ?? [:]
@@ -88,17 +89,17 @@ class NavigationChannel {
         }
     }
     
-    private func handlePopRoute(_ result: @escaping FlutterResult) {
+    private func handlePopRoute(result: @escaping FlutterResult) {
         guard navigationStack.count > 1 else {
             result(false)
             return
         }
         
-        navigationStack.removeLast()
-        currentRoute = navigationStack.last ?? "/"
-        
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
+            
+            self.navigationStack.removeLast()
+            self.currentRoute = self.navigationStack.last ?? "/"
             
             self.rootNavigationController?.popViewController(animated: true)
             
@@ -111,7 +112,7 @@ class NavigationChannel {
         }
     }
     
-    private func handleSetupTabs(_ arguments: Any?, result: @escaping FlutterResult) {
+    private func handleSetupTabs(arguments: Any?, result: @escaping FlutterResult) {
         guard let args = arguments as? [String: Any],
               let tabs = args["tabs"] as? [[String: Any]] else {
             result(FlutterError(code: "INVALID_ARGS", message: "Invalid tab configuration", details: nil))
@@ -120,87 +121,74 @@ class NavigationChannel {
         
         DispatchQueue.main.async { [weak self] in
             guard let self = self,
-                  let engine = self.flutterEngine,
-                  let tabController = self.tabBarController else {
-                result(FlutterError(code: "NO_TABBAR", message: "TabBarController not found", details: nil))
-                return
-            }
+                  let engine = self.flutterEngine else { return }
             
             let viewControllers = tabs.enumerated().map { [weak self] (index, config) -> UIViewController in
                 let flutterVC = FlutterViewController(engine: engine, nibName: nil, bundle: nil)
                 let navController = UINavigationController(rootViewController: flutterVC)
                 
-                if let title = config["title"] as? String {
-                    self?.configureTab(navController, title: title, config: config)
+                if let title = config["title"] as? String,
+                   let iconData = config["iconData"] as? FlutterStandardTypedData {
+                    self?.configureTabItem(for: navController, title: title, iconData: iconData)
                 }
                 
                 return navController
             }
             
-            tabController.setViewControllers(viewControllers, animated: false)
-            result(true)
+            self.tabBarController?.setViewControllers(viewControllers, animated: false)
             
-            // Set initial route
             if let route = tabs.first?["route"] as? String {
                 self.handleRouteChange(route)
             }
-        }
-    }
-    
-    private func configureTab(_ controller: UINavigationController, title: String, config: [String: Any]) {
-        if let iconData = config["iconData"] as? FlutterStandardTypedData {
-            let icon = UIImage(data: iconData.data)?
-                .withRenderingMode(.alwaysTemplate)
-                .withConfiguration(UIImage.SymbolConfiguration(scale: .large))
             
-            controller.tabBarItem = UITabBarItem(
-                title: title,
-                image: icon,
-                selectedImage: icon
-            )
+            result(true)
         }
     }
     
-    private func handleUpdateNavigation(_ arguments: Any?, result: @escaping FlutterResult) {
+    private func handleUpdateNavigation(arguments: Any?, result: @escaping FlutterResult) {
         guard let args = arguments as? [String: Any] else {
             result(FlutterError(code: "INVALID_ARGS", message: "Invalid arguments", details: nil))
             return
         }
         
         DispatchQueue.main.async { [weak self] in
-            guard let navigationController = self?.rootNavigationController else { return }
+            guard let self = self,
+                  let viewController = self.rootNavigationController?.topViewController else {
+                result(false)
+                return
+            }
             
             if let title = args["title"] as? String {
-                navigationController.topViewController?.title = title
+                viewController.title = title
             }
             
             if let rightButtons = args["rightButtons"] as? [[String: Any]] {
-                navigationController.topViewController?.navigationItem.rightBarButtonItems =
-                    self?.createBarButtonItems(from: rightButtons)
+                viewController.navigationItem.rightBarButtonItems = self.createBarButtonItems(from: rightButtons)
             }
             
             if let leftButtons = args["leftButtons"] as? [[String: Any]] {
-                navigationController.topViewController?.navigationItem.leftBarButtonItems =
-                    self?.createBarButtonItems(from: leftButtons)
+                viewController.navigationItem.leftBarButtonItems = self.createBarButtonItems(from: leftButtons)
             }
             
             result(true)
         }
     }
     
-    private func handleUpdateTheme(_ arguments: Any?, result: @escaping FlutterResult) {
+    private func handleUpdateTheme(arguments: Any?, result: @escaping FlutterResult) {
         guard let args = arguments as? [String: Any] else {
             result(FlutterError(code: "INVALID_ARGS", message: "Invalid theme data", details: nil))
             return
         }
         
         DispatchQueue.main.async { [weak self] in
-            guard let navigationController = self?.rootNavigationController else { return }
+            guard let self = self else { return }
             
-            let style = NavigationStyle(from: args)
-            style.apply(to: navigationController.navigationBar)
+            if let navigationController = self.rootNavigationController {
+                let style = NavigationStyle(from: args)
+                style.apply(to: navigationController.navigationBar)
+            }
             
-            if let tabBar = self?.tabBarController?.tabBar {
+            if let tabBar = self.tabBarController?.tabBar {
                 let theme = NavigationTheme()
                 theme.apply(to: tabBar)
             }
@@ -209,7 +197,7 @@ class NavigationChannel {
         }
     }
     
-    private func configureNavigationItem(for controller: FlutterViewController, with config: [String: Any]) {
+    private func configureNavigationItems(for controller: FlutterViewController, with config: [String: Any]) {
         if let rightButtons = config["rightButtons"] as? [[String: Any]] {
             controller.navigationItem.rightBarButtonItems = createBarButtonItems(from: rightButtons)
         }
@@ -217,6 +205,18 @@ class NavigationChannel {
         if let leftButtons = config["leftButtons"] as? [[String: Any]] {
             controller.navigationItem.leftBarButtonItems = createBarButtonItems(from: leftButtons)
         }
+    }
+    
+    private func configureTabItem(for controller: UINavigationController, title: String, iconData: FlutterStandardTypedData) {
+        let icon = UIImage(data: iconData.data)?
+            .withRenderingMode(.alwaysTemplate)
+            .withConfiguration(UIImage.SymbolConfiguration(scale: .large))
+        
+        controller.tabBarItem = UITabBarItem(
+            title: title,
+            image: icon,
+            selectedImage: icon
+        )
     }
     
     private func createBarButtonItems(from buttons: [[String: Any]]) -> [UIBarButtonItem] {
@@ -256,13 +256,11 @@ class NavigationChannel {
     
     func handleRouteChange(_ route: String, arguments: [String: Any]? = nil) {
         currentRoute = route
-        channel?.invokeMethod("setRoute", arguments: [
-            "route": route,
-            "arguments": arguments ?? [:]
-        ])
-    }
-    
-    func getRootNavigationController() -> UINavigationController? {
-        return rootNavigationController
+        DispatchQueue.main.async { [weak self] in
+            self?.channel?.invokeMethod("setRoute", arguments: [
+                "route": route,
+                "arguments": arguments ?? [:]
+            ])
+        }
     }
 }

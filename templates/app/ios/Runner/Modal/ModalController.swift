@@ -8,53 +8,39 @@ class ModalController {
     private var activeModals: [String: (controller: UINavigationController, route: String)] = [:]
     private var modalCounter: Int = 0
     private weak var flutterEngine: FlutterEngine?
-    private weak var navigationDelegate: NavigationChannel?
-    
-    // Keep track of previous route before modal
     private var previousRoute: String = "/"
     
     private init() {}
     
     func setup(with engine: FlutterEngine, controller: FlutterViewController) {
         self.flutterEngine = engine
-        self.navigationDelegate = NavigationChannel.shared
         
         channel = FlutterMethodChannel(
             name: "native_modal_channel",
             binaryMessenger: controller.binaryMessenger
         )
         
-        setupMethodHandler()
-    }
-    
-    private func setupMethodHandler() {
-        channel?.setMethodCallHandler { [weak self] call, result in
+        channel?.setMethodCallHandler { [weak self] (call: FlutterMethodCall, result: @escaping FlutterResult) in
             guard let self = self else { return }
             
             switch call.method {
             case "showModal":
-                self.handleShowModal(call.arguments) { modalId in
-                    result(modalId)
-                }
+                self.handleShowModal(arguments: call.arguments, result: result)
             case "dismissModal":
-                self.handleDismissModal(call.arguments) { success in
-                    result(success)
-                }
+                self.handleDismissModal(arguments: call.arguments, result: result)
             case "dismissAllModals":
-                self.handleDismissAllModals() { count in
-                    result(["dismissedCount": count])
-                }
+                self.handleDismissAllModals(result: result)
             default:
                 result(FlutterMethodNotImplemented)
             }
         }
     }
     
-    private func handleShowModal(_ arguments: Any?, completion: @escaping (String?) -> Void) {
+    private func handleShowModal(arguments: Any?, result: @escaping FlutterResult) {
         guard let args = arguments as? [String: Any],
               let route = args["route"] as? String,
               let engine = flutterEngine else {
-            completion(nil)
+            result(FlutterError(code: "INVALID_ARGS", message: "Invalid arguments or missing engine", details: nil))
             return
         }
         
@@ -64,54 +50,51 @@ class ModalController {
         // Store current route before showing modal
         previousRoute = NavigationChannel.shared.currentRoute
         
-        // Create Flutter view for modal
+        // Before creating new VC, detach engine
+        engine.viewController = nil
+        
         let flutterVC = FlutterViewController(engine: engine, nibName: nil, bundle: nil)
         let navController = UINavigationController(rootViewController: flutterVC)
         
-        // Configure modal
         configureModal(navController, with: args)
-        
-        // Store modal info
         activeModals[modalId] = (navController, route)
         
-        // Set route for the modal content
+        // Set route for modal content
         channel?.invokeMethod("setRoute", arguments: [
             "route": route,
             "arguments": args["arguments"] ?? [:],
             "modalId": modalId
         ])
         
-        // Present modal
         DispatchQueue.main.async { [weak self] in
             guard let rootViewController = UIApplication.shared.keyWindow?.rootViewController else {
-                completion(nil)
+                result(nil)
                 return
             }
             
             rootViewController.present(navController, animated: true) {
-                completion(modalId)
+                result(modalId)
             }
         }
     }
     
-    private func handleDismissModal(_ arguments: Any?, completion: @escaping (Bool) -> Void) {
+    private func handleDismissModal(arguments: Any?, result: @escaping FlutterResult) {
         guard let args = arguments as? [String: Any],
               let modalId = args["modalId"] as? String,
               let modalInfo = activeModals[modalId] else {
-            completion(false)
+            result(false)
             return
         }
         
         dismissModal(modalInfo.controller, modalId: modalId) { [weak self] success in
             if success {
-                // Restore previous route
-                self?.navigationDelegate?.handleRouteChange(self?.previousRoute ?? "/")
+                self?.restorePreviousRoute()
             }
-            completion(success)
+            result(success)
         }
     }
     
-    private func handleDismissAllModals(completion: @escaping (Int) -> Void) {
+    private func handleDismissAllModals(result: @escaping FlutterResult) {
         let count = activeModals.count
         let group = DispatchGroup()
         
@@ -123,14 +106,13 @@ class ModalController {
         }
         
         group.notify(queue: .main) { [weak self] in
-            // Restore previous route after all modals are dismissed
-            self?.navigationDelegate?.handleRouteChange(self?.previousRoute ?? "/")
-            completion(count)
+            self?.restorePreviousRoute()
+            result(["dismissedCount": count])
         }
     }
     
     private func configureModal(_ controller: UINavigationController, with config: [String: Any]) {
-        // Configure presentation style
+        // Set presentation style
         if let style = config["presentationStyle"] as? String {
             switch style {
             case "fullScreen":
@@ -152,8 +134,8 @@ class ModalController {
         
         // Configure navigation bar
         if let showHeader = config["showHeader"] as? Bool, showHeader {
-            if let headerTitle = config["headerTitle"] as? String {
-                controller.viewControllers.first?.title = headerTitle
+            if let title = config["headerTitle"] as? String {
+                controller.viewControllers.first?.title = title
             }
             
             if let showCloseButton = config["showCloseButton"] as? Bool,
@@ -205,8 +187,18 @@ class ModalController {
         }
     }
     
+    private func restorePreviousRoute() {
+        if let engine = flutterEngine {
+            engine.viewController = nil
+            channel?.invokeMethod("setRoute", arguments: [
+                "route": previousRoute,
+                "arguments": [:]
+            ])
+        }
+    }
+    
     @objc private func closeModalTapped(_ sender: UIBarButtonItem) {
         guard let modalId = sender.accessibilityIdentifier.map({ "modal_\($0)" }) else { return }
-        handleDismissModal(["modalId": modalId]) { _ in }
+        handleDismissModal(arguments: ["modalId": modalId], result: { _ in })
     }
 }
