@@ -22,33 +22,32 @@ class AppRouter {
       initialLocation: '/',
       routes: [
         // routes go here
-        GoRoute(
+         GoRoute(
           path: '/license',
-          builder: (context, state) {
-            // because the arguments passed fromm dart to dart you don't need to cast the extra to Map<String, String> but you can do it if you want especially if you don't want
-            // to be limited to accessing native UI in the future.
-            // final args = state.extra as Map<String, String>? ?? {};
-            return const Wrapper(child: LicensePage());
+          pageBuilder: (context, state) {
+            return wrapper(
+              isModal: true,
+              child:const  LicensePage()
+            );
           },
         ),
         GoRoute(
           path: '/',
-          builder: (context, state) {
-            // because the arguments passed fromm dart to dart you don't need to cast the extra to Map<String, String> but you can do it if you want especially if you don't want
-            // to be limited to accessing native UI in the future.
-            // final args = state.extra as Map<String, String>? ?? {};
-            return const Wrapper(child: HomeScreen());
-          },
+         pageBuilder: (context, state) {
+            return wrapper(
+              isModal: false,
+              child: const HomeScreen(
+                
+              ),
+            );}
         ),
         GoRoute(
           path: '/example',
-          builder: (context, state) {
-            // pass arguments to the screen
-            final args = state.extra as Map<String, String>? ?? {};
-            return Wrapper(
+          pageBuilder: (context, state) {
+            return wrapper(
+              isModal: true,
               child: ExampleScreen(
-                img: args['img'] ?? '',
-                title: args['title'] ?? '',
+                args: state.extra as Map<String, dynamic>? ?? {},
               ),
             );
           },

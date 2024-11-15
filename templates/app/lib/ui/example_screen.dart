@@ -4,13 +4,11 @@ import 'package:forui/forui.dart';
 import '../core/services/native/triggers/modal.dart';
 
 class ExampleScreen extends StatelessWidget {
-  final String img;
-  final String title;
+  final Map<String, dynamic> args;
 
   const ExampleScreen({
     super.key,
-    required this.img,
-    required this.title,
+    required this.args,
   });
 
   @override
@@ -18,7 +16,7 @@ class ExampleScreen extends StatelessWidget {
         data: FThemes.zinc.light,
         child: FScaffold(
           header: FHeader(
-            title: Text(title),
+            title: Text(args['title'] ?? ''),
           ),
           content: Center(
             child: Column(
@@ -28,7 +26,7 @@ class ExampleScreen extends StatelessWidget {
                   icon: const Icon(Icons.add),
                   onPressed: () {
                     try {
-                      ModalService.showModalWithRoute(
+                      ModalService.showModalWithRoute(context: context,
                         route: '/example',
                         arguments: {
                           'img': 'https://example.com/image.png',
@@ -44,8 +42,42 @@ class ExampleScreen extends StatelessWidget {
                   },
                 ),
                 
-                Image.network(img),
-                Text(title),
+                Image.network(
+                  args['img'] ?? '',
+                  width: double.infinity,
+                  height: 300,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) => Container(
+                    height: 300,
+                    width: double.infinity,
+                    color: Colors.grey[300],
+                    child: const Icon(Icons.error),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        args['title'] ?? '',
+                        style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        args['description'] ?? '',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.grey[700],
+                          height: 1.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
