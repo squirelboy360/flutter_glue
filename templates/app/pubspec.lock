@@ -168,6 +168,14 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
+  flutter_native_text_input:
+    dependency: "direct main"
+    description:
+      name: flutter_native_text_input
+      sha256: f67880ad339913216bc507cf44ef35a16970186efb25dc9cec18cd3f18e87d8e
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.4.0"
   flutter_platform_alert:
     dependency: "direct main"
     description:
