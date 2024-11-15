@@ -22,25 +22,20 @@ class AppRouter {
       initialLocation: '/',
       routes: [
         // routes go here
-         GoRoute(
+        GoRoute(
           path: '/license',
           pageBuilder: (context, state) {
-            return wrapper(
-              isModal: true,
-              child:const  LicensePage()
-            );
+            return wrapper(isModal: true, child: const LicensePage());
           },
         ),
         GoRoute(
-          path: '/',
-         pageBuilder: (context, state) {
-            return wrapper(
-              isModal: false,
-              child: const HomeScreen(
-                
-              ),
-            );}
-        ),
+            path: '/',
+            pageBuilder: (context, state) {
+              return wrapper(
+                isModal: false,
+                child: const HomeScreen(),
+              );
+            }),
         GoRoute(
           path: '/example',
           pageBuilder: (context, state) {

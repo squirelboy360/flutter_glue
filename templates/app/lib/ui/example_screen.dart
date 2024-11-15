@@ -1,7 +1,7 @@
+import 'package:example_app/core/services/native/triggers/alerts.dart';
 import 'package:flutter/material.dart';
 import 'package:forui/forui.dart';
 
-import '../core/services/native/triggers/modal.dart';
 
 class ExampleScreen extends StatelessWidget {
   final Map<String, dynamic> args;
@@ -25,20 +25,7 @@ class ExampleScreen extends StatelessWidget {
                 IconButton(
                   icon: const Icon(Icons.add),
                   onPressed: () {
-                    try {
-                      ModalService.showModalWithRoute(context: context,
-                        route: '/example',
-                        arguments: {
-                          'img': 'https://example.com/image.png',
-                          'title': 'Example Title'
-                        },
-                      );
-                    } catch (e) {
-                      debugPrint('Error showing modal: $e');
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Error: $e')),
-                      );
-                    }
+                   AlertService.showAlert(title: "Title", message: args['title'] );
                   },
                 ),
                 
