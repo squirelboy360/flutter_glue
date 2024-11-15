@@ -7,6 +7,7 @@ A Native Android and IOS shell for fluttter that ensures flutter apps are trully
   <ol>
    <li>Native Modals</li>
     <li>Native Alerts</li>
+    <li>Native text input support</li>
     <li>Forui UI framework out of box</li>
     <li>Go Router out of box for future easy native integration</li>
   </ol>
