@@ -51,8 +51,7 @@ class ModalService {
             ..._headerStyleToMap(config.headerStyle!),
         };
 
-        final modalId =
-            await _channel.invokeMethod<String>('showModal', methodArguments);
+        final modalId = await _channel.invokeMethod<String>('showModal', methodArguments);
         return modalId;
       } on PlatformException catch (e) {
         if (kDebugMode) {
@@ -61,14 +60,18 @@ class ModalService {
         return null;
       }
     } else {
-      return _showPlatformModal(
-        route: route,
-        arguments: arguments,
-        showHeader: showNativeHeader,
-        headerTitle: headerTitle,
-        showCloseButton: showCloseButton,
-        configuration: config,
+      final context = navigatorKey.currentContext;
+      if (context == null) return null;
+
+      final modalId = 'flutter_modal_${DateTime.now().millisecondsSinceEpoch}';
+
+      // Use GoRouter for navigation to maintain consistency
+      await GoRouter.of(context).push(
+        route,
+        extra: arguments,
       );
+
+      return modalId;
     }
   }
 
@@ -84,7 +87,6 @@ class ModalService {
     };
   }
 
-  /// Custom GoRouter builder widget to handle navigation
   static Widget _buildRouterContent(
       String route, Map<String, String> arguments) {
     return Builder(
@@ -97,7 +99,6 @@ class ModalService {
     );
   }
 
-  /// Build modal content wrapper
   static Widget _buildModalContent({
     required BuildContext context,
     required String route,
@@ -111,7 +112,9 @@ class ModalService {
       color: configuration.style.effectiveBackgroundColor,
       child: SafeArea(
         child: Column(
-          mainAxisSize: MainAxisSize.min,
+          mainAxisSize: configuration.presentationStyle == ModalPresentationStyle.fullScreen 
+              ? MainAxisSize.max 
+              : MainAxisSize.min,
           children: [
             if (showHeader)
               _buildHeader(
@@ -120,71 +123,16 @@ class ModalService {
                 showCloseButton: showCloseButton,
                 headerStyle: configuration.headerStyle,
               ),
-            Expanded(
-              child: _buildRouterContent(route, arguments),
+            Flexible(
+              child: SingleChildScrollView(
+                physics: const ClampingScrollPhysics(),
+                child: _buildRouterContent(route, arguments),
+              ),
             ),
           ],
         ),
       ),
     );
-  }
-
-  static Future<String?> _showPlatformModal({
-    required String route,
-    required Map<String, String> arguments,
-    required bool showHeader,
-    required String? headerTitle,
-    required bool showCloseButton,
-    required ModalConfiguration configuration,
-  }) async {
-    final context = navigatorKey.currentContext;
-    if (context == null) return null;
-
-    final modalId = 'flutter_modal_${DateTime.now().millisecondsSinceEpoch}';
-    final content = _buildModalContent(
-      context: context,
-      route: route,
-      arguments: arguments,
-      showHeader: showHeader,
-      headerTitle: headerTitle,
-      showCloseButton: showCloseButton,
-      configuration: configuration,
-    );
-
-    switch (configuration.presentationStyle) {
-      case ModalPresentationStyle.sheet:
-        await _showBottomSheet(
-          context,
-          content,
-          configuration,
-        );
-        break;
-
-      case ModalPresentationStyle.fullScreen:
-        await _showFullScreenModal(
-          context,
-          content,
-          configuration,
-        );
-        break;
-
-      case ModalPresentationStyle.formSheet:
-        await _showDialogModal(
-          context,
-          content,
-          configuration,
-        );
-        break;
-
-      default:
-        await _showBottomSheet(
-          context,
-          content,
-          configuration,
-        );
-    }
-
-    return modalId;
   }
 
   static Future<void> _showBottomSheet(
@@ -200,15 +148,24 @@ class ModalService {
       backgroundColor: Colors.transparent,
       barrierColor: configuration.style.barrierColor,
       useSafeArea: true,
-      builder: (context) => Container(
-        decoration: BoxDecoration(
-          color: configuration.style.effectiveBackgroundColor,
-          borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(configuration.style.cornerRadius ?? 16.0),
-            topRight: Radius.circular(configuration.style.cornerRadius ?? 16.0),
+      constraints: const BoxConstraints(
+        maxHeight: double.infinity,
+      ),
+      builder: (context) => DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.9,
+        maxChildSize: 0.9,
+        minChildSize: 0.5,
+        builder: (context, scrollController) => Container(
+          decoration: BoxDecoration(
+            color: configuration.style.effectiveBackgroundColor,
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(configuration.style.cornerRadius ?? 16.0),
+              topRight: Radius.circular(configuration.style.cornerRadius ?? 16.0),
+            ),
           ),
+          child: content,
         ),
-        child: content,
       ),
     );
   }
@@ -323,12 +280,18 @@ class ModalService {
     if (Platform.isIOS) {
       try {
         await _channel.invokeMethod('dismissModal', {'modalId': modalId});
-        return true;
       } catch (e) {
-        return false;
+        if (kDebugMode) {
+          print("Error dismissing modal: $e");
+        }
+      }
+    } else {
+      final context = navigatorKey.currentContext;
+      if (context != null) {
+        context.pop();
       }
     }
-    return false;
+    return true;
   }
 
   static Future<int> dismissAllModals() async {
@@ -339,8 +302,14 @@ class ModalService {
       } catch (e) {
         return 0;
       }
+    } else {
+      final context = navigatorKey.currentContext;
+      if (context != null) {
+        context.pop();
+        return 1;
+      }
+      return 0;
     }
-    return 0;
   }
 
   static Future<List<String>> getActiveModals() async {

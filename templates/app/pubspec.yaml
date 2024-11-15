@@ -20,6 +20,7 @@ dependencies:
   flutter_platform_alert: ^0.6.1
   flutter_bloc: ^8.1.6
   hydrated_bloc: ^9.1.5
+  rename_app: ^1.6.1
 
 
 dev_dependencies:
