@@ -12,8 +12,8 @@ A Native Android and IOS shell for fluttter that ensures flutter apps are trully
     <li>Go Router out of box for future easy native integration</li>
   </ol>
   
-### NB. Currently, android fallbacks to Flutter Native UI
-### NB. Plugins can't be used in native modals and views as the plugins are regstered only in main engine. This is temporal
+### NB) Currently, android fallbacks to Flutter Native UI
+### NB) Plugins can't be used in native modals and views as the plugins are registered only in main flutter engine. This is temporal.
 
 # Cloning
 ## After cloning do these
