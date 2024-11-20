@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'text_input/platform_text_input.dart';
 
-class NativeTextService {
-  /// Creates a native text input with configurable styling
+class TextInputService {
+  /// Creates a default single-line text input
   static Widget createDefaultInput({
     TextEditingController? controller,
     FocusNode? focusNode,
@@ -12,10 +12,9 @@ class NativeTextService {
     VoidCallback? onEditingComplete,
     double height = 30,
     TextStyle? style,
-    BoxDecoration? decoration,
     Color? placeholderColor,
-    TextCapitalization? textCapitalization,
-    Map<String, dynamic>? platformOptions,
+    TextCapitalization textCapitalization = TextCapitalization.none,
+    Map<String, dynamic>? platformConfig,
   }) {
     return SizedBox(
       height: height,
@@ -28,13 +27,13 @@ class NativeTextService {
         onChanged: onChanged,
         onSubmitted: onSubmitted,
         onEditingComplete: onEditingComplete,
-        textCapitalization: textCapitalization ?? TextCapitalization.none,
-        platformConfig: platformOptions,
+        textCapitalization: textCapitalization,
+        platformConfig: platformConfig,
       ),
     );
   }
 
-  /// Creates a multiline native text input
+  /// Creates a multiline text input
   static Widget createMultilineInput({
     TextEditingController? controller,
     FocusNode? focusNode,
@@ -45,10 +44,9 @@ class NativeTextService {
     int maxLines = 5,
     double minHeight = 100,
     TextStyle? style,
-    BoxDecoration? decoration,
     Color? placeholderColor,
-    TextCapitalization? textCapitalization,
-    Map<String, dynamic>? platformOptions,
+    TextCapitalization textCapitalization = TextCapitalization.sentences,
+    Map<String, dynamic>? platformConfig,
   }) {
     return SizedBox(
       height: minHeight,
@@ -62,13 +60,13 @@ class NativeTextService {
         onSubmitted: onSubmitted,
         onEditingComplete: onEditingComplete,
         maxLines: maxLines,
-        textCapitalization: textCapitalization ?? TextCapitalization.sentences,
-        platformConfig: platformOptions,
+        textCapitalization: textCapitalization,
+        platformConfig: platformConfig,
       ),
     );
   }
 
-  /// Creates a search-optimized native text input
+  /// Creates a search-optimized text input
   static Widget createSearchInput({
     TextEditingController? controller,
     FocusNode? focusNode,
@@ -78,10 +76,8 @@ class NativeTextService {
     VoidCallback? onEditingComplete,
     double height = 40,
     TextStyle? style,
-    BoxDecoration? decoration,
     Color? placeholderColor,
-    TextCapitalization? textCapitalization,
-    Map<String, dynamic>? platformOptions,
+    Map<String, dynamic>? platformConfig,
   }) {
     return SizedBox(
       height: height,
@@ -96,7 +92,7 @@ class NativeTextService {
         onEditingComplete: onEditingComplete,
         keyboardType: TextInputType.text,
         textCapitalization: TextCapitalization.none,
-        platformConfig: platformOptions,
+        platformConfig: platformConfig,
       ),
     );
   }

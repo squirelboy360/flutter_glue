@@ -1,4 +1,6 @@
 import 'package:example_app/core/services/native/constants/modal_styles.dart';
+import 'package:example_app/core/services/native/views/text_input_service.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:forui/forui.dart';
 import '../core/services/native/triggers/modal.dart';
@@ -134,7 +136,8 @@ class _HomeScreenState extends State<HomeScreen> {
                             height: 200,
                             width: double.infinity,
                             fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) => Container(
+                            errorBuilder: (context, error, stackTrace) =>
+                                Container(
                               height: 200,
                               width: double.infinity,
                               color: Colors.grey[300],
@@ -191,17 +194,22 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
       footer: Padding(
         padding: const EdgeInsets.all(20.0),
-        child: FButton(
-            onPress: () {
-              ModalService.showModalWithRoute(
-                context: context,
-                route: '/',
-                arguments: {},
-                configuration: const ModalConfiguration(
-                    presentationStyle: ModalPresentationStyle.fullScreen),
-              );
-            },
-            label: const Text("View Fullscreen")),
+        child: Container(
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: Colors.red[300],
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Center(
+                child: TextInputService.createDefaultInput(
+              height: 60,
+              placeholder: "Enter text",
+              onChanged: (value) {
+                if (kDebugMode) {
+                  print("Text changed: $value");
+                }
+              },
+            ))),
       ),
     );
   }

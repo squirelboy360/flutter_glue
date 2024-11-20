@@ -1,9 +1,10 @@
-import Flutter
 import UIKit
+import Flutter
 
 @main
 @objc class AppDelegate: FlutterAppDelegate {
   lazy var flutterEngine = FlutterEngine(name: "my_flutter_engine")
+  lazy var modalEngine = FlutterEngine(name: "my_modal_engine")
   var activeModals: [String: UINavigationController] = [:]
   var modalCounter: Int = 0
   
@@ -11,11 +12,30 @@ import UIKit
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
+    // Configure Flutter engines
     flutterEngine.run()
+    modalEngine.run()
+    GeneratedPluginRegistrant.register(with: flutterEngine)
+    GeneratedPluginRegistrant.register(with: modalEngine)
+
+    // Register native text input views for both engines
+    let mainRegistry = self.registrar(forPlugin: "com.example.app/native_text_input")
+    let modalRegistry = modalEngine.registrar(forPlugin: "com.example.app/native_text_input")
     
-    // Register plugins with the root controller
-    GeneratedPluginRegistrant.register(with: self)
+    let mainFactory = NativeTextInputFactory(messenger: flutterEngine.binaryMessenger)
+    let modalFactory = NativeTextInputFactory(messenger: modalEngine.binaryMessenger)
     
+    mainRegistry?.register(
+      mainFactory,
+      withId: "com.example.app/native_text_input"
+    )
+    
+    modalRegistry?.register(
+      modalFactory,
+      withId: "com.example.app/native_text_input"
+    )
+
+    // Setup modal manager
     let controller = window?.rootViewController as! FlutterViewController
     let channel = FlutterMethodChannel(name: "native_modal_channel", binaryMessenger: controller.binaryMessenger)
     
@@ -121,7 +141,7 @@ import UIKit
     backgroundColor: UIColor?,
     configuration: ModalConfiguration
   ) {
-    let flutterViewController = FlutterViewController(engine: flutterEngine, nibName: nil, bundle: nil)
+    let flutterViewController = FlutterViewController(engine: modalEngine, nibName: nil, bundle: nil)
     let navController = UINavigationController(rootViewController: flutterViewController)
     
     // Configure modal presentation style

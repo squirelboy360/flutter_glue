@@ -1,7 +1,5 @@
 PODS:
   - Flutter (1.0.0)
-  - flutter_native_text_input (2.2.0):
-    - Flutter
   - flutter_platform_alert (0.0.1):
     - Flutter
   - path_provider_foundation (0.0.1):
@@ -10,15 +8,12 @@ PODS:
 
 DEPENDENCIES:
   - Flutter (from `Flutter`)
-  - flutter_native_text_input (from `.symlinks/plugins/flutter_native_text_input/ios`)
   - flutter_platform_alert (from `.symlinks/plugins/flutter_platform_alert/ios`)
   - path_provider_foundation (from `.symlinks/plugins/path_provider_foundation/darwin`)
 
 EXTERNAL SOURCES:
   Flutter:
     :path: Flutter
-  flutter_native_text_input:
-    :path: ".symlinks/plugins/flutter_native_text_input/ios"
   flutter_platform_alert:
     :path: ".symlinks/plugins/flutter_platform_alert/ios"
   path_provider_foundation:
@@ -26,7 +21,6 @@ EXTERNAL SOURCES:
 
 SPEC CHECKSUMS:
   Flutter: e0871f40cf51350855a761d2e70bf5af5b9b5de7
-  flutter_native_text_input: 246da758e5a2e744774aa839a1a21902e0e84ceb
   flutter_platform_alert: f507baf17889a38794d3cf16b98b637fb69479bd
   path_provider_foundation: 2b6b4c569c0fb62ec74538f866245ac84301af46
 

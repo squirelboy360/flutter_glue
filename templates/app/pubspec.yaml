@@ -21,8 +21,6 @@ dependencies:
   flutter_bloc: ^8.1.6
   hydrated_bloc: ^9.1.5
   rename_app: ^1.6.1
-  flutter_native_text_input: ^2.4.0
-
 
 dev_dependencies:
   flutter_test:
