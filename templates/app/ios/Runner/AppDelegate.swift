@@ -18,26 +18,41 @@ import Flutter
     GeneratedPluginRegistrant.register(with: flutterEngine)
     GeneratedPluginRegistrant.register(with: modalEngine)
 
+    // Set the root view controller
+    self.window = UIWindow(frame: UIScreen.main.bounds)
+    let viewController = FlutterViewController(engine: flutterEngine, nibName: nil, bundle: nil)
+    self.window.rootViewController = viewController
+    self.window.makeKeyAndVisible()
+
     // Register native text input views for both engines
-    let mainRegistry = self.registrar(forPlugin: "com.example.app/native_text_input")
-    let modalRegistry = modalEngine.registrar(forPlugin: "com.example.app/native_text_input")
-    
+    let viewId = "com.example.app/native_text_input"
     let mainFactory = NativeTextInputFactory(messenger: flutterEngine.binaryMessenger)
     let modalFactory = NativeTextInputFactory(messenger: modalEngine.binaryMessenger)
     
-    mainRegistry?.register(
-      mainFactory,
-      withId: "com.example.app/native_text_input"
-    )
+    // Register with main engine
+    let registrar = flutterEngine.registrar(forPlugin: viewId)
+    registrar?.register(mainFactory, withId: viewId)
     
-    modalRegistry?.register(
-      modalFactory,
-      withId: "com.example.app/native_text_input"
-    )
+    // Register with modal engine
+    let modalRegistrar = modalEngine.registrar(forPlugin: viewId)
+    modalRegistrar?.register(modalFactory, withId: viewId)
+
+    // Setup keyboard dismissal channel
+    let keyboardChannel = FlutterMethodChannel(
+        name: "com.example.app/keyboard",
+        binaryMessenger: viewController.binaryMessenger)
+    
+    keyboardChannel.setMethodCallHandler { [weak self] call, result in
+        if call.method == "dismissKeyboard" {
+            self?.window?.endEditing(true)
+            result(nil)
+        } else {
+            result(FlutterMethodNotImplemented)
+        }
+    }
 
     // Setup modal manager
-    let controller = window?.rootViewController as! FlutterViewController
-    let channel = FlutterMethodChannel(name: "native_modal_channel", binaryMessenger: controller.binaryMessenger)
+    let channel = FlutterMethodChannel(name: "native_modal_channel", binaryMessenger: viewController.binaryMessenger)
     
     channel.setMethodCallHandler { [weak self] (call: FlutterMethodCall, result: @escaping FlutterResult) in
       guard let self = self else { return }

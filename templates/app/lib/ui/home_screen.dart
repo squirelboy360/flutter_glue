@@ -1,4 +1,3 @@
-import 'package:example_app/core/services/native/constants/modal_styles.dart';
 import 'package:example_app/core/services/native/views/text_input_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -165,11 +164,11 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                           ),
                         ),
-                        child: Padding(
-                          padding: const EdgeInsets.only(top: 12),
+                        child: const Padding(
+                          padding: EdgeInsets.only(top: 12),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.end,
-                            children: const [
+                            children: [
                               Text(
                                 'View Details',
                                 style: TextStyle(

@@ -33,7 +33,7 @@ class NativeTextInputFactory: NSObject, FlutterPlatformViewFactory {
     }
 }
 
-class NativeTextInputView: NSObject, FlutterPlatformView {
+class NativeTextInputView: NSObject, FlutterPlatformView, UITextFieldDelegate {
     private var textField: UITextField
     private var channel: FlutterMethodChannel
     private var viewId: Int64
@@ -157,15 +157,24 @@ class NativeTextInputView: NSObject, FlutterPlatformView {
             "viewId": viewId
         ])
     }
-}
 
-extension NativeTextInputView: UITextFieldDelegate {
+    func textFieldDidEndEditing(_ textField: UITextField) {
+        channel.invokeMethod("onEndEditing", arguments: [
+            "text": textField.text ?? "",
+            "viewId": viewId
+        ])
+    }
+
+    func textFieldShouldEndEditing(_ textField: UITextField) -> Bool {
+        return true
+    }
+
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {
+        textField.resignFirstResponder()
         channel.invokeMethod("onSubmitted", arguments: [
             "text": textField.text ?? "",
             "viewId": viewId
         ])
-        textField.resignFirstResponder()
         return true
     }
 }
