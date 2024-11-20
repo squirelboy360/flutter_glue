@@ -158,12 +158,23 @@ class NativeTextInputView: NSObject, FlutterPlatformView, UITextFieldDelegate {
         ])
     }
 
+    func textFieldDidEndEditing(_ textField: UITextField) {
+        channel.invokeMethod("onEndEditing", arguments: [
+            "text": textField.text ?? "",
+            "viewId": viewId
+        ])
+    }
+
+    func textFieldShouldEndEditing(_ textField: UITextField) -> Bool {
+        return true
+    }
+
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {
+        textField.resignFirstResponder()
         channel.invokeMethod("onSubmitted", arguments: [
             "text": textField.text ?? "",
             "viewId": viewId
         ])
-        textField.resignFirstResponder()
         return true
     }
 }

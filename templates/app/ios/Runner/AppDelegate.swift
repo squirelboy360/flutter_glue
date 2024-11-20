@@ -37,6 +37,20 @@ import Flutter
     let modalRegistrar = modalEngine.registrar(forPlugin: viewId)
     modalRegistrar?.register(modalFactory, withId: viewId)
 
+    // Setup keyboard dismissal channel
+    let keyboardChannel = FlutterMethodChannel(
+        name: "com.example.app/keyboard",
+        binaryMessenger: viewController.binaryMessenger)
+    
+    keyboardChannel.setMethodCallHandler { [weak self] call, result in
+        if call.method == "dismissKeyboard" {
+            self?.window?.endEditing(true)
+            result(nil)
+        } else {
+            result(FlutterMethodNotImplemented)
+        }
+    }
+
     // Setup modal manager
     let channel = FlutterMethodChannel(name: "native_modal_channel", binaryMessenger: viewController.binaryMessenger)
     

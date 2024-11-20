@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart'; // Add this import
 import 'package:example_app/core/routing/app_router.dart';
 
 void main() {
@@ -14,12 +15,11 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
-      onTap: () {
-        // Dismiss keyboard when tapping outside any input
-        final currentFocus = FocusScope.of(context);
-        if (!currentFocus.hasPrimaryFocus && currentFocus.focusedChild != null) {
-          FocusManager.instance.primaryFocus?.unfocus();
-        }
+      onTapDown: (_) {
+        FocusManager.instance.primaryFocus?.unfocus();
+        // Send dismiss event to native side
+        const platform = MethodChannel('com.example.app/keyboard');
+        platform.invokeMethod('dismissKeyboard');
       },
       child: MaterialApp.router(
         routerConfig: AppRouter.router,
