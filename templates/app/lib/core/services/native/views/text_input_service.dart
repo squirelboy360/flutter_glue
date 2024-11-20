@@ -2,6 +2,20 @@ import 'package:flutter/material.dart';
 import 'text_input/platform_text_input.dart';
 
 class TextInputService {
+  /// Wraps widget with keyboard dismissal functionality
+  static Widget _wrapWithKeyboardDismissal(Widget child) {
+    return Builder(
+      builder: (context) => GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onTap: () {
+          // Dismiss keyboard when tapping outside
+          FocusScope.of(context).unfocus();
+        },
+        child: child,
+      ),
+    );
+  }
+
   /// Creates a default single-line text input
   static Widget createDefaultInput({
     TextEditingController? controller,
@@ -16,19 +30,21 @@ class TextInputService {
     TextCapitalization textCapitalization = TextCapitalization.none,
     Map<String, dynamic>? platformConfig,
   }) {
-    return SizedBox(
-      height: height,
-      child: PlatformTextInput(
-        controller: controller,
-        focusNode: focusNode,
-        placeholder: placeholder,
-        style: style,
-        placeholderColor: placeholderColor,
-        onChanged: onChanged,
-        onSubmitted: onSubmitted,
-        onEditingComplete: onEditingComplete,
-        textCapitalization: textCapitalization,
-        platformConfig: platformConfig,
+    return _wrapWithKeyboardDismissal(
+      SizedBox(
+        height: height,
+        child: PlatformTextInput(
+          controller: controller,
+          focusNode: focusNode,
+          placeholder: placeholder,
+          style: style,
+          placeholderColor: placeholderColor,
+          onChanged: onChanged,
+          onSubmitted: onSubmitted,
+          onEditingComplete: onEditingComplete,
+          textCapitalization: textCapitalization,
+          platformConfig: platformConfig,
+        ),
       ),
     );
   }
@@ -48,20 +64,22 @@ class TextInputService {
     TextCapitalization textCapitalization = TextCapitalization.sentences,
     Map<String, dynamic>? platformConfig,
   }) {
-    return SizedBox(
-      height: minHeight,
-      child: PlatformTextInput(
-        controller: controller,
-        focusNode: focusNode,
-        placeholder: placeholder,
-        style: style,
-        placeholderColor: placeholderColor,
-        onChanged: onChanged,
-        onSubmitted: onSubmitted,
-        onEditingComplete: onEditingComplete,
-        maxLines: maxLines,
-        textCapitalization: textCapitalization,
-        platformConfig: platformConfig,
+    return _wrapWithKeyboardDismissal(
+      SizedBox(
+        height: minHeight,
+        child: PlatformTextInput(
+          controller: controller,
+          focusNode: focusNode,
+          placeholder: placeholder,
+          style: style,
+          placeholderColor: placeholderColor,
+          onChanged: onChanged,
+          onSubmitted: onSubmitted,
+          onEditingComplete: onEditingComplete,
+          maxLines: maxLines,
+          textCapitalization: textCapitalization,
+          platformConfig: platformConfig,
+        ),
       ),
     );
   }
@@ -79,20 +97,22 @@ class TextInputService {
     Color? placeholderColor,
     Map<String, dynamic>? platformConfig,
   }) {
-    return SizedBox(
-      height: height,
-      child: PlatformTextInput(
-        controller: controller,
-        focusNode: focusNode,
-        placeholder: placeholder ?? 'Search',
-        style: style,
-        placeholderColor: placeholderColor,
-        onChanged: onChanged,
-        onSubmitted: onSubmitted,
-        onEditingComplete: onEditingComplete,
-        keyboardType: TextInputType.text,
-        textCapitalization: TextCapitalization.none,
-        platformConfig: platformConfig,
+    return _wrapWithKeyboardDismissal(
+      SizedBox(
+        height: height,
+        child: PlatformTextInput(
+          controller: controller,
+          focusNode: focusNode,
+          placeholder: placeholder ?? 'Search',
+          style: style,
+          placeholderColor: placeholderColor,
+          onChanged: onChanged,
+          onSubmitted: onSubmitted,
+          onEditingComplete: onEditingComplete,
+          keyboardType: TextInputType.text,
+          textCapitalization: TextCapitalization.none,
+          platformConfig: platformConfig,
+        ),
       ),
     );
   }

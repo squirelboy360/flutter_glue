@@ -19,21 +19,24 @@ import Flutter
     GeneratedPluginRegistrant.register(with: modalEngine)
 
     // Register native text input views for both engines
-    let mainRegistry = self.registrar(forPlugin: "com.example.app/native_text_input")
-    let modalRegistry = modalEngine.registrar(forPlugin: "com.example.app/native_text_input")
-    
     let mainFactory = NativeTextInputFactory(messenger: flutterEngine.binaryMessenger)
     let modalFactory = NativeTextInputFactory(messenger: modalEngine.binaryMessenger)
     
-    mainRegistry?.register(
-      mainFactory,
-      withId: "com.example.app/native_text_input"
-    )
+    // Register with main engine
+    if let registrar = flutterEngine.registrar(forPlugin: "com.example.app/native_text_input") {
+        registrar.register(
+            mainFactory,
+            withId: "com.example.app/native_text_input"
+        )
+    }
     
-    modalRegistry?.register(
-      modalFactory,
-      withId: "com.example.app/native_text_input"
-    )
+    // Register with modal engine
+    if let registrar = modalEngine.registrar(forPlugin: "com.example.app/native_text_input") {
+        registrar.register(
+            modalFactory,
+            withId: "com.example.app/native_text_input"
+        )
+    }
 
     // Setup modal manager
     let controller = window?.rootViewController as! FlutterViewController
