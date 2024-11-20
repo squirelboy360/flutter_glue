@@ -113,17 +113,19 @@ class _PlatformTextInputState extends State<PlatformTextInput> {
       ...?widget.platformConfig,
     };
 
+    const String viewType = 'com.example.app/native_text_input';
+
     // Create the appropriate platform view
     if (defaultTargetPlatform == TargetPlatform.iOS) {
       return UiKitView(
-        viewType: 'com.example.app/native_text_input',
+        viewType: viewType,
         onPlatformViewCreated: _onPlatformViewCreated,
         creationParams: creationParams,
         creationParamsCodec: const StandardMessageCodec(),
       );
     } else if (defaultTargetPlatform == TargetPlatform.android) {
       return AndroidView(
-        viewType: 'com.example.app/native_text_input',
+        viewType: viewType,
         onPlatformViewCreated: _onPlatformViewCreated,
         creationParams: creationParams,
         creationParamsCodec: const StandardMessageCodec(),

@@ -33,7 +33,7 @@ class NativeTextInputFactory: NSObject, FlutterPlatformViewFactory {
     }
 }
 
-class NativeTextInputView: NSObject, FlutterPlatformView {
+class NativeTextInputView: NSObject, FlutterPlatformView, UITextFieldDelegate {
     private var textField: UITextField
     private var channel: FlutterMethodChannel
     private var viewId: Int64
@@ -157,9 +157,7 @@ class NativeTextInputView: NSObject, FlutterPlatformView {
             "viewId": viewId
         ])
     }
-}
 
-extension NativeTextInputView: UITextFieldDelegate {
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {
         channel.invokeMethod("onSubmitted", arguments: [
             "text": textField.text ?? "",

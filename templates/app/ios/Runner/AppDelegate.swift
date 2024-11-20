@@ -18,29 +18,27 @@ import Flutter
     GeneratedPluginRegistrant.register(with: flutterEngine)
     GeneratedPluginRegistrant.register(with: modalEngine)
 
+    // Set the root view controller
+    self.window = UIWindow(frame: UIScreen.main.bounds)
+    let viewController = FlutterViewController(engine: flutterEngine, nibName: nil, bundle: nil)
+    self.window.rootViewController = viewController
+    self.window.makeKeyAndVisible()
+
     // Register native text input views for both engines
+    let viewId = "com.example.app/native_text_input"
     let mainFactory = NativeTextInputFactory(messenger: flutterEngine.binaryMessenger)
     let modalFactory = NativeTextInputFactory(messenger: modalEngine.binaryMessenger)
     
     // Register with main engine
-    if let registrar = flutterEngine.registrar(forPlugin: "com.example.app/native_text_input") {
-        registrar.register(
-            mainFactory,
-            withId: "com.example.app/native_text_input"
-        )
-    }
+    let registrar = flutterEngine.registrar(forPlugin: viewId)
+    registrar?.register(mainFactory, withId: viewId)
     
     // Register with modal engine
-    if let registrar = modalEngine.registrar(forPlugin: "com.example.app/native_text_input") {
-        registrar.register(
-            modalFactory,
-            withId: "com.example.app/native_text_input"
-        )
-    }
+    let modalRegistrar = modalEngine.registrar(forPlugin: viewId)
+    modalRegistrar?.register(modalFactory, withId: viewId)
 
     // Setup modal manager
-    let controller = window?.rootViewController as! FlutterViewController
-    let channel = FlutterMethodChannel(name: "native_modal_channel", binaryMessenger: controller.binaryMessenger)
+    let channel = FlutterMethodChannel(name: "native_modal_channel", binaryMessenger: viewController.binaryMessenger)
     
     channel.setMethodCallHandler { [weak self] (call: FlutterMethodCall, result: @escaping FlutterResult) in
       guard let self = self else { return }
