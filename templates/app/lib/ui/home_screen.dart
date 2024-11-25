@@ -142,6 +142,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           context,
                           '/example',
                           headerTitle: item.title,
+
                           arguments: {
                             'img': item.imageUrl,
                             'title': item.title,
