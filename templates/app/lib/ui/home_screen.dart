@@ -6,13 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:forui/forui.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:example_app/core/routing/core/route_handler.dart';
-import 'package:example_app/core/services/native/triggers/modal.dart';
-import 'package:example_app/core/services/native/views/text_input_service.dart';
-import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
-import 'package:forui/forui.dart';
-import 'package:share_plus/share_plus.dart';
+
 
 class ItemData {
   final int id;
@@ -139,19 +133,18 @@ class _HomeScreenState extends State<HomeScreen> {
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 16),
                     child: GestureDetector(
-                      onTap: () {
-                        RouteHandler.showModal(
-                          context,
-                          '/example',
+                      onTap: () async {
+                        final modalId = await ModalService.showModalWithRoute(
+                          context: context,
+                          route: '/example',
                           headerTitle: item.title,
-                          showCloseButton: true,
-                          showNativeHeader: true,
-                          configuration:  ModalConfiguration(
-                            showDragIndicator: false,
-                            headerStyle: ModalHeaderStyle(backgroundColor: Colors.black.withOpacity(0.5)),
+                          showNativeHeader: false,
+                          configuration: const ModalConfiguration(
+                            showDragIndicator: true,
                             detents: [ModalDetent.medium],
                           ),
                           arguments: {
+                            'modalId': 'modal_${DateTime.now().millisecondsSinceEpoch}',
                             'img': item.imageUrl,
                             'title': item.title,
                             'description': item.description,
@@ -233,14 +226,16 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Center(
                 child: TextInputService.createInput(
               height: 60,
-              config: const TextConfig(
+              config:  TextConfig(
+                borderWidth: 1.2,
+                cornerRadius: 12,
                 placeholder: 'Search',
-                backgroundColor: Colors.orange,
+                backgroundColor: context.theme.colorScheme.secondary,
                 autocorrect: false,
-                textStyle: TextStyle(fontSize: 20),
+                textStyle: const TextStyle(fontSize: 20),
                 maxLines: 1,
                 keyboardType: TextInputType.text,
-                padding: EdgeInsets.symmetric(horizontal: 16),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
               ),
               onChanged: (value) {
                 if (kDebugMode) {

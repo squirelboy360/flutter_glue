@@ -201,4 +201,39 @@ class ModalConfiguration {
     this.onPresented,
     this.onWillDismiss,
   });
+
+  /// Creates a copy of this configuration with the given fields replaced with the new values
+  ModalConfiguration copyWith({
+    ModalPresentationStyle? presentationStyle,
+    ModalTransitionStyle? transitionStyle,
+    List<ModalDetent>? detents,
+    ModalDetent? initialDetent,
+    bool? isDismissible,
+    bool? showDragIndicator,
+    bool? enableSwipeGesture,
+    SwipeDismissDirection? swipeDismissDirection,
+    Color? backgroundColor,
+    double? cornerRadius,
+    ModalHeaderStyle? headerStyle,
+    Future<bool> Function()? onWillDismiss,
+    VoidCallback? onDismissed,
+    VoidCallback? onPresented,
+  }) {
+    return ModalConfiguration(
+      presentationStyle: presentationStyle ?? this.presentationStyle,
+      transitionStyle: transitionStyle ?? this.transitionStyle,
+      detents: detents ?? this.detents,
+      initialDetent: initialDetent ?? this.initialDetent,
+      isDismissible: isDismissible ?? this.isDismissible,
+      showDragIndicator: showDragIndicator ?? this.showDragIndicator,
+      enableSwipeGesture: enableSwipeGesture ?? this.enableSwipeGesture,
+      swipeDismissDirection: swipeDismissDirection ?? this.swipeDismissDirection,
+      backgroundColor: backgroundColor ?? this.backgroundColor,
+      cornerRadius: cornerRadius ?? this.cornerRadius,
+      headerStyle: headerStyle ?? this.headerStyle,
+      onWillDismiss: onWillDismiss ?? this.onWillDismiss,
+      onDismissed: onDismissed ?? this.onDismissed,
+      onPresented: onPresented ?? this.onPresented,
+    );
+  }
 }

@@ -12,6 +12,8 @@ import Flutter
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
+    GeneratedPluginRegistrant.register(with: self)
+    
     // Configure Flutter engines
     flutterEngine.run()
     modalEngine.run()
@@ -23,34 +25,7 @@ import Flutter
     let viewController = FlutterViewController(engine: flutterEngine, nibName: nil, bundle: nil)
     self.window.rootViewController = viewController
     self.window.makeKeyAndVisible()
-
-    // Register native text input views for both engines
-    let viewId = "com.example.app/native_text_input"
-    let mainFactory = NativeTextInputFactory(messenger: flutterEngine.binaryMessenger)
-    let modalFactory = NativeTextInputFactory(messenger: modalEngine.binaryMessenger)
     
-    // Register with main engine
-    let registrar = flutterEngine.registrar(forPlugin: viewId)
-    registrar?.register(mainFactory, withId: viewId)
-    
-    // Register with modal engine
-    let modalRegistrar = modalEngine.registrar(forPlugin: viewId)
-    modalRegistrar?.register(modalFactory, withId: viewId)
-
-    // Setup keyboard dismissal channel
-    let keyboardChannel = FlutterMethodChannel(
-        name: "com.example.app/keyboard",
-        binaryMessenger: viewController.binaryMessenger)
-    
-    keyboardChannel.setMethodCallHandler { [weak self] call, result in
-        if call.method == "dismissKeyboard" {
-            self?.window?.endEditing(true)
-            result(nil)
-        } else {
-            result(FlutterMethodNotImplemented)
-        }
-    }
-
     // Setup modal manager
     let channel = FlutterMethodChannel(name: "native_modal_channel", binaryMessenger: viewController.binaryMessenger)
     
@@ -104,34 +79,80 @@ import Flutter
         )
         
         result(modalId)
-        
-      case "dismissModal":
+
+      case "updateModalConfiguration":
         guard let arguments = call.arguments as? [String: Any],
-              let modalId = arguments["modalId"] as? String else {
-          result(FlutterError(code: "INVALID_ARGUMENTS", message: "Modal ID required", details: nil))
+              let modalId = arguments["modalId"] as? String,
+              let navController = self.activeModals[modalId] else {
+          result(false)
           return
         }
         
-        if let navController = self.activeModals[modalId] {
-          navController.dismiss(animated: true) {
-            self.activeModals.removeValue(forKey: modalId)
+        let configuration = ModalConfiguration(from: arguments)
+        
+        if #available(iOS 15.0, *),
+           let sheet = navController.sheetPresentationController {
+          // Update detents
+          var sheetDetents: [UISheetPresentationController.Detent] = []
+          for detent in configuration.detents {
+            switch detent {
+              case "small":
+                if #available(iOS 16.0, *) {
+                  sheetDetents.append(.custom { _ in
+                    return UIScreen.main.bounds.height * 0.3
+                  })
+                }
+              case "medium":
+                sheetDetents.append(.medium())
+              case "large":
+                sheetDetents.append(.large())
+              default:
+                sheetDetents.append(.large())
+            }
           }
-          result(true)
-        } else {
+          
+          // Animate changes
+          UIView.animate(withDuration: 0.3) {
+            sheet.animateChanges {
+              sheet.detents = sheetDetents
+              if #available(iOS 16.0, *),
+                 let selectedDetent = configuration.selectedDetent {
+                sheet.selectedDetentIdentifier = .init(selectedDetent)
+              }
+              
+              sheet.prefersGrabberVisible = configuration.showDragIndicator
+              
+              // Update dismissibility
+              navController.isModalInPresentation = !configuration.isDismissible
+              
+              // Update background color if provided
+              if let colorValue = arguments["backgroundColor"] as? Int {
+                navController.view.backgroundColor = UIColor(rgb: colorValue)
+              }
+              
+              // Update corner radius if provided
+              if let cornerRadius = arguments["cornerRadius"] as? CGFloat {
+                navController.view.layer.cornerRadius = cornerRadius
+                navController.view.clipsToBounds = true
+              }
+            }
+          }
+        }
+        
+        result(true)
+        
+      case "dismissModal":
+        guard let arguments = call.arguments as? [String: Any],
+              let modalId = arguments["modalId"] as? String,
+              let navController = self.activeModals[modalId] else {
           result(false)
+          return
         }
         
-      case "dismissAllModals":
-        let count = self.activeModals.count
-        for (modalId, controller) in self.activeModals {
-          controller.dismiss(animated: true) {
-            self.activeModals.removeValue(forKey: modalId)
-          }
+        navController.dismiss(animated: true) {
+          self.activeModals.removeValue(forKey: modalId)
+          result(true)
         }
-        result(["dismissedCount": count])
-        
-      case "getActiveModals":
-        result(Array(self.activeModals.keys))
         
       default:
         result(FlutterMethodNotImplemented)
@@ -185,15 +206,7 @@ import Flutter
                 sheetDetents.append(.medium())
               case "large":
                 sheetDetents.append(.large())
-              case "custom":
-                if #available(iOS 16.0, *),
-                   let height = configuration.style.customDetentHeight {
-                  sheetDetents.append(.custom { _ in
-                    return UIScreen.main.bounds.height * height
-                  })
-                }
               default:
-                // Handle any unknown detent values
                 sheetDetents.append(.large())
             }
           }
@@ -202,13 +215,6 @@ import Flutter
           sheet?.prefersGrabberVisible = showDragIndicator
           sheet?.prefersScrollingExpandsWhenScrolledToEdge = true
           sheet?.prefersEdgeAttachedInCompactHeight = true
-          
-          // Set initial detent
-          if let initialDetent = configuration.style.initialDetent,
-             sheetDetents.count > 0 {
-            let index = min(initialDetent, sheetDetents.count - 1)
-            sheet?.selectedDetentIdentifier = sheetDetents[index].identifier
-          }
         }
     }
     
@@ -250,15 +256,6 @@ import Flutter
     modalChannel.invokeMethod("setRoute", arguments: ["route": route, "arguments": arguments])
   }
   
-  @objc private func dismissModal(_ sender: UIBarButtonItem) {
-    let modalId = "modal_\(sender.tag)"
-    if let navController = activeModals[modalId] {
-      navController.dismiss(animated: true) { [weak self] in
-        self?.activeModals.removeValue(forKey: modalId)
-      }
-    }
-  }
-  
   private func getTopViewController() -> UIViewController? {
     var topController = UIApplication.shared.keyWindow?.rootViewController
     
@@ -267,6 +264,15 @@ import Flutter
     }
     
     return topController
+  }
+  
+  @objc private func dismissModal(_ sender: UIBarButtonItem) {
+    let modalId = "modal_\(sender.tag)"
+    if let navController = activeModals[modalId] {
+      navController.dismiss(animated: true) { [weak self] in
+        self?.activeModals.removeValue(forKey: modalId)
+      }
+    }
   }
 }
 
@@ -282,26 +288,28 @@ extension UIColor {
 }
 
 struct ModalConfiguration {
-  var presentationStyle: String
-  var detents: [String]
-  var isDismissible: Bool
-  var showDragIndicator: Bool
-  var enableSwipeGesture: Bool
-  var style: ModalStyle
-  var transitionStyle: String
-  
-  // Header style options
-  var headerStyle: ModalHeaderStyle?
+  let presentationStyle: String
+  let detents: [String]
+  let isDismissible: Bool
+  let showDragIndicator: Bool
+  let enableSwipeGesture: Bool
+  let backgroundColor: UIColor?
+  let cornerRadius: CGFloat?
+  let selectedDetent: String?
   
   init(from arguments: [String: Any]) {
-    self.presentationStyle = (arguments["presentationStyle"] as? String) ?? "sheet"
-    self.detents = (arguments["detents"] as? [String]) ?? ["small", "medium", "large"]
-    self.isDismissible = (arguments["isDismissible"] as? Bool) ?? true
-    self.showDragIndicator = (arguments["showDragIndicator"] as? Bool) ?? true
-    self.enableSwipeGesture = (arguments["enableSwipeGesture"] as? Bool) ?? true
-    self.style = ModalStyle(from: arguments)
-    self.transitionStyle = (arguments["transitionStyle"] as? String) ?? "default"
-    self.headerStyle = ModalHeaderStyle(from: arguments)
+    self.presentationStyle = arguments["presentationStyle"] as? String ?? "sheet"
+    self.detents = arguments["detents"] as? [String] ?? ["medium"]
+    self.isDismissible = arguments["isDismissible"] as? Bool ?? true
+    self.showDragIndicator = arguments["showDragIndicator"] as? Bool ?? true
+    self.enableSwipeGesture = arguments["enableSwipeGesture"] as? Bool ?? true
+    if let colorValue = arguments["backgroundColor"] as? Int {
+      self.backgroundColor = UIColor(rgb: colorValue)
+    } else {
+      self.backgroundColor = nil
+    }
+    self.cornerRadius = arguments["cornerRadius"] as? CGFloat
+    self.selectedDetent = arguments["selectedDetentIdentifier"] as? String
   }
 }
 
@@ -313,6 +321,7 @@ struct ModalStyle {
   var blurIntensity: CGFloat?
   var customDetentHeight: CGFloat?
   var initialDetent: Int?
+  var selectedDetentIdentifier: String?
   
   init(from arguments: [String: Any]) {
     self.effectiveBackgroundColor = UIColor(rgb: arguments["backgroundColor"] as? Int ?? 0xFFFFFF)
@@ -322,6 +331,7 @@ struct ModalStyle {
     self.blurIntensity = (arguments["blurIntensity"] as? CGFloat) ?? 5.0
     self.customDetentHeight = (arguments["customDetentHeight"] as? CGFloat)
     self.initialDetent = (arguments["selectedDetentIdentifier"] as? Int)
+    self.selectedDetentIdentifier = (arguments["selectedDetentIdentifier"] as? String)
   }
 }
 

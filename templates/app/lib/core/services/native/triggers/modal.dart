@@ -22,6 +22,9 @@ class ModalService {
       try {
         final config = configuration ?? const ModalConfiguration();
         
+        // Generate a unique modal ID that will be used for updates
+        final modalId = 'modal_${DateTime.now().millisecondsSinceEpoch}';
+        
         // Calculate detents based on configuration
         List<String> detents;
         if (config.detents.isNotEmpty) {
@@ -30,17 +33,18 @@ class ModalService {
           detents = [config.initialDetent.name];
         }
       
-                       
         final selectedDetent = config.initialDetent?.name ?? detents.first;
 
         final methodArguments = {
           'route': route,
           'arguments': {
             ...arguments,
+            'modalId': modalId, // Pass modalId in arguments
             'showNativeHeader': showNativeHeader.toString(),
             'showCloseButton': showCloseButton.toString(),
             if (headerTitle != null) 'headerTitle': headerTitle,
           },
+          'modalId': modalId, // Also pass at top level for native side
           'presentationStyle': config.presentationStyle.name,
           'transitionStyle': config.transitionStyle?.name ?? ModalTransitionStyle.coverVertical.name,
           'detents': detents,
@@ -48,49 +52,21 @@ class ModalService {
           'isDismissible': config.isDismissible,
           'showDragIndicator': config.showDragIndicator,
           'enableSwipeGesture': config.enableSwipeGesture,
-          'swipeDismissDirection': config.swipeDismissDirection?.name ?? SwipeDismissDirection.down.name,
           if (config.backgroundColor != null)
             'backgroundColor': config.backgroundColor!.value,
           if (config.cornerRadius != null)
             'cornerRadius': config.cornerRadius,
           'headerStyle': config.headerStyle != null ? _headerStyleToMap(config.headerStyle!) : null,
-          'onWillDismiss': config.onWillDismiss != null,
-          'onDismissed': config.onDismissed != null,
-          'onPresented': config.onPresented != null,
         };
 
-        final modalId = await _channel.invokeMethod<String>('showModal', methodArguments);
+        // Show modal and get the modalId back from native side
+        final result = await _channel.invokeMethod<String>('showModal', methodArguments);
         
-        // Set up callback handlers
-        if (modalId != null) {
-          _channel.setMethodCallHandler((call) async {
-            switch (call.method) {
-              case 'onWillDismiss':
-                if (config.onWillDismiss != null) {
-                  return await config.onWillDismiss!();
-                }
-                return true;
-              case 'onDismissed':
-                config.onDismissed?.call();
-                break;
-              case 'onPresented':
-                config.onPresented?.call();
-                break;
-              case 'onDetentChanged':
-                final detent = call.arguments['detent'] as String?;
-                if (detent != null) {
-                  // Handle detent change if needed
-                }
-                break;
-            }
-          });
-        }
-
-        return modalId;
+        // Return the modalId for future updates
+        return result ?? modalId;
       } catch (e) {
-        if (kDebugMode) {
-          print("Error showing native modal: $e");
-        }
+        debugPrint("Error showing native modal: $e");
+        // Fall back to Flutter implementation
         return ModalFallback.showModal(
           context: context,
           route: route,
@@ -150,5 +126,70 @@ class ModalService {
       }
     }
     return [];
+  }
+
+  /// Updates the configuration of an active modal
+  static Future<bool> updateModalConfiguration(String modalId, ModalConfiguration configuration) async {
+    debugPrint('Updating modal configuration for ID: $modalId');
+    if (Platform.isIOS) {
+      try {
+        final methodArguments = {
+          'modalId': modalId,
+          'presentationStyle': configuration.presentationStyle.name,
+          'detents': configuration.detents.map((d) => d.name).toList(),
+          'selectedDetentIdentifier': configuration.initialDetent?.name,
+          'isDismissible': configuration.isDismissible,
+          'showDragIndicator': configuration.showDragIndicator,
+          'enableSwipeGesture': configuration.enableSwipeGesture,
+          if (configuration.backgroundColor != null)
+            'backgroundColor': configuration.backgroundColor!.value,
+          if (configuration.cornerRadius != null)
+            'cornerRadius': configuration.cornerRadius,
+          'headerStyle': configuration.headerStyle != null ? _headerStyleToMap(configuration.headerStyle!) : null,
+        };
+
+        final result = await _channel.invokeMethod<bool>('updateModalConfiguration', methodArguments);
+        return result ?? false;
+      } catch (e) {
+        debugPrint("Error updating native modal: $e");
+        return false;
+      }
+    } else {
+      return ModalFallback.updateModalConfiguration(modalId, configuration);
+    }
+  }
+
+  /// Updates the detent of an active modal
+  static Future<bool> updateModalDetent(String modalId, ModalDetent detent) async {
+    if (Platform.isIOS) {
+      try {
+        final success = await _channel.invokeMethod<bool>('updateModalDetent', {
+          'modalId': modalId,
+          'detent': detent.name,
+        }) ?? false;
+        return success;
+      } catch (e) {
+        debugPrint("Error updating modal detent: $e");
+        return false;
+      }
+    }
+    return false;
+  }
+
+  /// Updates the presentation style of an active modal
+  static Future<bool> updateModalPresentationStyle(String modalId, ModalPresentationStyle style) async {
+    if (Platform.isIOS) {
+      try {
+        final success = await _channel.invokeMethod<bool>('updateModalPresentationStyle', {
+          'modalId': modalId,
+          'presentationStyle': style.name,
+        }) ?? false;
+        return success;
+      } catch (e) {
+        debugPrint("Error updating modal presentation style: $e");
+        return false;
+      }
+    }
+    return false;
   }
 }
