@@ -1,10 +1,14 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import '../../services/native/triggers/modal.dart';
+import '../../../core/services/native/triggers/modal.dart';
+import '../routes.dart';
+import 'app_router.dart';
 
-/// Handles navigation based on route type
+/// Handles navigation actions in the app
 class RouteHandler {
-  /// Handle deep link or regular navigation
+  /// Global context for deep linking
+  static BuildContext? globalContext;
+
+  /// Show a modal route
   static void showModal(
     BuildContext context,
     String route, {
@@ -13,24 +17,38 @@ class RouteHandler {
     bool showNativeHeader = true,
     bool showCloseButton = true,
   }) {
-    ModalService.showModalWithRoute(
-      context: context,
-      route: route,
-      arguments: arguments ?? {},
-      showNativeHeader: showNativeHeader,
-      showCloseButton: showCloseButton,
-      headerTitle: headerTitle,
-    );
+    globalContext = context;
+    final appRoute = Routes.getRoute(route);
+    if (appRoute == null) return;
+
+    if (appRoute.isModal) {
+      ModalService.showModalWithRoute(
+        context: context,
+        route: route,
+        arguments: arguments ?? {},
+        showNativeHeader: showNativeHeader,
+        showCloseButton: showCloseButton,
+        headerTitle: headerTitle ?? appRoute.title,
+      );
+    } else {
+      AppRouter.router.push(route, extra: arguments);
+    }
   }
 
-  /// Handle deep link navigation
-  static void handleDeepLink(Uri uri) {
-    final isModal = uri.queryParameters['isModal']?.toLowerCase() == 'true';
-    if (isModal) {
-      // Modal deep links will be handled when context is available
-      if (kDebugMode) {
-        print('Modal deep link received: $uri');
-      }
-    }
+  /// Navigate to a route
+  static void pushRoute(String route, [Map<String, String>? arguments]) {
+    final context = AppRouter.navigatorKey.currentContext;
+    if (context == null) return;
+    globalContext = context;
+
+    AppRouter.router.push(route, extra: arguments);
+  }
+
+  /// Pop the current route
+  static void pop<T extends Object?>([T? result]) {
+    final context = AppRouter.navigatorKey.currentContext;
+    if (context == null) return;
+
+    AppRouter.router.pop(result);
   }
 }

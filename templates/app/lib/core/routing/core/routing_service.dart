@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../../services/deep_link_service.dart';
+import 'deep_link_service.dart';
 import '../route_config.dart';
 
 class RoutingService {
