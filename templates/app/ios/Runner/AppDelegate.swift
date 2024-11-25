@@ -72,7 +72,7 @@ import Flutter
         
         // Get modal options
         let presentationStyle = (arguments["presentationStyle"] as? String) ?? "sheet"
-        let detents = (arguments["detents"] as? [String]) ?? ["large"]
+        let detents = (arguments["detents"] as? [String]) ?? ["small", "medium", "large"]
         let isDismissible = (arguments["isDismissible"] as? Bool) ?? true
         let showDragIndicator = (arguments["showDragIndicator"] as? Bool) ?? true
         let enableSwipeGesture = (arguments["enableSwipeGesture"] as? Bool) ?? true
@@ -86,7 +86,7 @@ import Flutter
         
         // Include customization parameters (header style, transition style, etc.)
         let modalConfiguration = ModalConfiguration(from: arguments)
-
+        
         self.showFlutterModal(
           id: modalId,
           route: route,
@@ -175,9 +175,25 @@ import Flutter
           var sheetDetents: [UISheetPresentationController.Detent] = []
           for detent in detents {
             switch detent {
+              case "small":
+                if #available(iOS 16.0, *) {
+                  sheetDetents.append(.custom { _ in
+                    return UIScreen.main.bounds.height * 0.3
+                  })
+                }
               case "medium":
                 sheetDetents.append(.medium())
-              default: // "large"
+              case "large":
+                sheetDetents.append(.large())
+              case "custom":
+                if #available(iOS 16.0, *),
+                   let height = configuration.style.customDetentHeight {
+                  sheetDetents.append(.custom { _ in
+                    return UIScreen.main.bounds.height * height
+                  })
+                }
+              default:
+                // Handle any unknown detent values
                 sheetDetents.append(.large())
             }
           }
@@ -186,6 +202,13 @@ import Flutter
           sheet?.prefersGrabberVisible = showDragIndicator
           sheet?.prefersScrollingExpandsWhenScrolledToEdge = true
           sheet?.prefersEdgeAttachedInCompactHeight = true
+          
+          // Set initial detent
+          if let initialDetent = configuration.style.initialDetent,
+             sheetDetents.count > 0 {
+            let index = min(initialDetent, sheetDetents.count - 1)
+            sheet?.selectedDetentIdentifier = sheetDetents[index].identifier
+          }
         }
     }
     
@@ -272,7 +295,7 @@ struct ModalConfiguration {
   
   init(from arguments: [String: Any]) {
     self.presentationStyle = (arguments["presentationStyle"] as? String) ?? "sheet"
-    self.detents = (arguments["detents"] as? [String]) ?? ["large"]
+    self.detents = (arguments["detents"] as? [String]) ?? ["small", "medium", "large"]
     self.isDismissible = (arguments["isDismissible"] as? Bool) ?? true
     self.showDragIndicator = (arguments["showDragIndicator"] as? Bool) ?? true
     self.enableSwipeGesture = (arguments["enableSwipeGesture"] as? Bool) ?? true
@@ -288,6 +311,8 @@ struct ModalStyle {
   var cornerRadius: CGFloat?
   var blurBackground: Bool
   var blurIntensity: CGFloat?
+  var customDetentHeight: CGFloat?
+  var initialDetent: Int?
   
   init(from arguments: [String: Any]) {
     self.effectiveBackgroundColor = UIColor(rgb: arguments["backgroundColor"] as? Int ?? 0xFFFFFF)
@@ -295,6 +320,8 @@ struct ModalStyle {
     self.cornerRadius = (arguments["cornerRadius"] as? CGFloat) ?? 20.0
     self.blurBackground = (arguments["blurBackground"] as? Bool) ?? false
     self.blurIntensity = (arguments["blurIntensity"] as? CGFloat) ?? 5.0
+    self.customDetentHeight = (arguments["customDetentHeight"] as? CGFloat)
+    self.initialDetent = (arguments["selectedDetentIdentifier"] as? Int)
   }
 }
 

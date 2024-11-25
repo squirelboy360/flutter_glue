@@ -2,12 +2,14 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:forui/forui.dart';
-import 'package:go_router/go_router.dart';
 
+/// Wraps pages with consistent transition animations
 Page<dynamic> wrapper({
+  required BuildContext context,
   required Widget child,
-  bool? isModal = false,
+  bool isModal = false,
 }) {
+  final theme = Theme.of(context);
   Widget wrappedChild = child;
   if (!kIsWeb && (Platform.isIOS || Platform.isAndroid)) {
     wrappedChild = PrimaryScrollController(
@@ -22,15 +24,26 @@ Page<dynamic> wrapper({
     );
   }
 
-  final content = FTheme(
-    data: FThemes.zinc.light,
-    child: FScaffold(
-      content: wrappedChild,
-      contentPad: false,
+  final content = Theme(
+    data: theme,
+    child: FTheme(
+      data: theme.brightness == Brightness.dark
+          ? FThemes.zinc.dark
+          : FThemes.zinc.light,
+      child: Builder(
+        builder: (context) => wrappedChild,
+      ),
     ),
   );
 
-  return isModal!
-      ? NoTransitionPage(child: MaterialApp(home: content))
-      : MaterialPage(child: content);
+  if (isModal) {
+    return MaterialPage(
+      fullscreenDialog: true,
+      child: Theme(
+        data: theme,
+        child: content,
+      ),
+    );
+  }
+  return MaterialPage(child: content);
 }

@@ -1,8 +1,18 @@
+import 'package:example_app/core/routing/core/route_handler.dart';
+import 'package:example_app/core/services/native/constants/modal_styles.dart';
+import 'package:example_app/core/services/native/triggers/modal.dart';
 import 'package:example_app/core/services/native/views/text_input_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:forui/forui.dart';
-import '../core/services/native/triggers/modal.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:example_app/core/routing/core/route_handler.dart';
+import 'package:example_app/core/services/native/triggers/modal.dart';
+import 'package:example_app/core/services/native/views/text_input_service.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:forui/forui.dart';
+import 'package:share_plus/share_plus.dart';
 
 class ItemData {
   final int id;
@@ -33,6 +43,13 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _generateItems();
+  }
+
+  void _showShareSheet() async {
+    await Share.share(
+      'Check out this awesome app!',
+      subject: 'App Invitation',
+    );
   }
 
   void _generateItems() {
@@ -80,19 +97,28 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return FScaffold(
-      header: FHeader(
-        title: const Text('Nature Gallery'),
-        actions: [
-          IconButton(
-            icon: FIcon(FAssets.icons.info),
-            onPressed: () {
-              ModalService.showModalWithRoute(
-                context: context,
-                route: '/license',
-                arguments: {},
-                showNativeHeader: false,
-              );
-            },
+      header: Column(
+        children: [
+          FHeader(
+            title: const Text('Nature Gallery'),
+            actions: [
+              IconButton.outlined(
+                icon: FIcon(FAssets.icons.info),
+                onPressed: () {
+                  ModalService.showModalWithRoute(
+                    context: context,
+                    route: '/license',
+                    arguments: {},
+                    showNativeHeader: false,
+                  );
+                },
+              ),
+            ],
+          ),
+          FButton(
+            style: FButtonStyle.secondary,
+            onPress: _showShareSheet,
+            label: const Icon(Icons.share),
           ),
         ],
       ),
@@ -114,12 +140,17 @@ class _HomeScreenState extends State<HomeScreen> {
                     padding: const EdgeInsets.only(bottom: 16),
                     child: GestureDetector(
                       onTap: () {
-                        ModalService.showModalWithRoute(
-                          context: context,
-                          showNativeHeader: true,
-                          showCloseButton: true,
+                        RouteHandler.showModal(
+                          context,
+                          '/example',
                           headerTitle: item.title,
-                          route: '/example',
+                          showCloseButton: true,
+                          showNativeHeader: true,
+                          configuration:  ModalConfiguration(
+                            showDragIndicator: false,
+                            headerStyle: ModalHeaderStyle(backgroundColor: Colors.black.withOpacity(0.5)),
+                            detents: [ModalDetent.medium],
+                          ),
                           arguments: {
                             'img': item.imageUrl,
                             'title': item.title,
@@ -200,9 +231,17 @@ class _HomeScreenState extends State<HomeScreen> {
               borderRadius: BorderRadius.circular(8),
             ),
             child: Center(
-                child: TextInputService.createDefaultInput(
+                child: TextInputService.createInput(
               height: 60,
-              placeholder: "Enter text",
+              config: const TextConfig(
+                placeholder: 'Search',
+                backgroundColor: Colors.orange,
+                autocorrect: false,
+                textStyle: TextStyle(fontSize: 20),
+                maxLines: 1,
+                keyboardType: TextInputType.text,
+                padding: EdgeInsets.symmetric(horizontal: 16),
+              ),
               onChanged: (value) {
                 if (kDebugMode) {
                   print("Text changed: $value");
@@ -211,5 +250,10 @@ class _HomeScreenState extends State<HomeScreen> {
             ))),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
   }
 }

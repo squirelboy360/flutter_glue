@@ -1,36 +1,41 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../text_input_service.dart';
+
+class TextInputController {
+  MethodChannel? _channel;
+  
+  void setChannel(MethodChannel channel) {
+    _channel = channel;
+  }
+
+  Future<void> hideKeyboard() async {
+    await _channel?.invokeMethod('clearFocus');
+  }
+}
 
 class PlatformTextInput extends StatefulWidget {
   final TextEditingController? controller;
   final FocusNode? focusNode;
-  final String? placeholder;
-  final TextStyle? style;
-  final Color? placeholderColor;
   final ValueChanged<String>? onChanged;
   final ValueChanged<String>? onSubmitted;
   final VoidCallback? onEditingComplete;
-  final TextInputType keyboardType;
-  final TextCapitalization textCapitalization;
-  final int? maxLines;
-  final Map<String, dynamic>? platformConfig;
+  final TextConfig nativeConfig;
+  final String? viewId;
+  final TextInputController? textInputController;
 
   const PlatformTextInput({
-    Key? key,
+    super.key,
     this.controller,
     this.focusNode,
-    this.placeholder,
-    this.style,
-    this.placeholderColor,
     this.onChanged,
     this.onSubmitted,
     this.onEditingComplete,
-    this.keyboardType = TextInputType.text,
-    this.textCapitalization = TextCapitalization.none,
-    this.maxLines = 1,
-    this.platformConfig,
-  }) : super(key: key);
+    required this.nativeConfig,
+    this.viewId,
+    this.textInputController,
+  });
 
   @override
   State<PlatformTextInput> createState() => _PlatformTextInputState();
@@ -39,15 +44,27 @@ class PlatformTextInput extends StatefulWidget {
 class _PlatformTextInputState extends State<PlatformTextInput> {
   late TextEditingController _controller;
   late FocusNode _focusNode;
-  late MethodChannel _channel;
-  int _viewId = -1;
+  MethodChannel? _channel;
 
   @override
   void initState() {
     super.initState();
     _controller = widget.controller ?? TextEditingController();
     _focusNode = widget.focusNode ?? FocusNode();
-    _focusNode.addListener(_handleFocusChange);
+  }
+
+  @override
+  void didUpdateWidget(PlatformTextInput oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.nativeConfig != widget.nativeConfig) {
+      _updateNativeStyle();
+    }
+  }
+
+  void _updateNativeStyle() {
+    if (_channel != null) {
+      _channel!.invokeMethod('updateStyle', widget.nativeConfig.toNativeParams());
+    }
   }
 
   @override
@@ -58,96 +75,103 @@ class _PlatformTextInputState extends State<PlatformTextInput> {
     if (widget.focusNode == null) {
       _focusNode.dispose();
     }
-    _focusNode.removeListener(_handleFocusChange);
-    _channel.setMethodCallHandler(null);
     super.dispose();
-  }
-
-  void _handleFocusChange() {
-    if (_viewId != -1) {
-      _channel.invokeMethod('focus', {'focus': _focusNode.hasFocus});
-    }
-  }
-
-  void _onPlatformViewCreated(int viewId) {
-    _viewId = viewId;
-    _channel = MethodChannel('native_text_input_$viewId');
-    _channel.setMethodCallHandler(_handleMethodCall);
-
-    // Initial setup
-    _channel.invokeMethod('setText', _controller.text);
-    if (_focusNode.hasFocus) {
-      _channel.invokeMethod('focus', {'focus': true});
-    }
-  }
-
-  Future<dynamic> _handleMethodCall(MethodCall call) async {
-    switch (call.method) {
-      case 'onTextChanged':
-        final text = call.arguments['text'] as String;
-        if (text != _controller.text) {
-          _controller.text = text;
-          widget.onChanged?.call(text);
-        }
-        break;
-      case 'onSubmitted':
-        final text = call.arguments['text'] as String;
-        widget.onSubmitted?.call(text);
-        widget.onEditingComplete?.call();
-        break;
-    }
   }
 
   @override
   Widget build(BuildContext context) {
-    // Platform-specific view parameters
-    final Map<String, dynamic> creationParams = {
-      'text': _controller.text,
-      'placeholder': widget.placeholder,
-      'textColor': widget.style?.color?.value,
-      'placeholderColor': widget.placeholderColor?.value,
-      'fontSize': widget.style?.fontSize,
-      'keyboardType': widget.keyboardType.index,
-      'textCapitalization': widget.textCapitalization.index,
-      'maxLines': widget.maxLines,
-      ...?widget.platformConfig,
-    };
+    // Use native view on supported platforms
+    if (defaultTargetPlatform == TargetPlatform.iOS || defaultTargetPlatform == TargetPlatform.android) {
+      final creationParams = {
+        'initialText': _controller.text,
+        ...widget.nativeConfig.toNativeParams(),
+        'viewId': widget.viewId ?? DateTime.now().millisecondsSinceEpoch.toString(),
+      };
 
-    const String viewType = 'com.example.app/native_text_input';
-
-    // Create the appropriate platform view
-    if (defaultTargetPlatform == TargetPlatform.iOS) {
-      return UiKitView(
-        viewType: viewType,
-        onPlatformViewCreated: _onPlatformViewCreated,
-        creationParams: creationParams,
-        creationParamsCodec: const StandardMessageCodec(),
-      );
-    } else if (defaultTargetPlatform == TargetPlatform.android) {
-      return AndroidView(
-        viewType: viewType,
-        onPlatformViewCreated: _onPlatformViewCreated,
-        creationParams: creationParams,
-        creationParamsCodec: const StandardMessageCodec(),
-      );
+      if (defaultTargetPlatform == TargetPlatform.iOS) {
+        return UiKitView(
+          viewType: 'com.example.app/native_text_input',
+          onPlatformViewCreated: _onPlatformViewCreated,
+          creationParams: creationParams,
+          creationParamsCodec: const StandardMessageCodec(),
+        );
+      } else {
+        return AndroidView(
+          viewType: 'com.example.app/native_text_input',
+          onPlatformViewCreated: _onPlatformViewCreated,
+          creationParams: creationParams,
+          creationParamsCodec: const StandardMessageCodec(),
+        );
+      }
     }
 
-    // Fallback for unsupported platforms
-    return TextField(
-      controller: _controller,
-      focusNode: _focusNode,
-      decoration: InputDecoration(
-        hintText: widget.placeholder,
-        hintStyle: TextStyle(color: widget.placeholderColor),
-        border: InputBorder.none,
+    // Fallback to Flutter TextField for web or other platforms
+    return Material(
+      color: Colors.transparent,
+      child: TextField(
+        controller: _controller,
+        focusNode: _focusNode,
+        decoration: InputDecoration(
+          hintText: widget.nativeConfig.placeholder,
+          hintStyle: TextStyle(color: widget.nativeConfig.placeholderColor),
+          filled: true,
+          fillColor: widget.nativeConfig.backgroundColor,
+          contentPadding: widget.nativeConfig.padding,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(widget.nativeConfig.cornerRadius ?? 0),
+            borderSide: BorderSide(
+              color: widget.nativeConfig.borderColor ?? Colors.transparent,
+              width: widget.nativeConfig.borderWidth ?? 0,
+            ),
+          ),
+        ),
+        style: widget.nativeConfig.textStyle,
+        keyboardType: widget.nativeConfig.keyboardType,
+        obscureText: widget.nativeConfig.secure ?? false,
+        maxLines: widget.nativeConfig.maxLines,
+        autocorrect: widget.nativeConfig.autocorrect ?? true,
+        onChanged: widget.onChanged,
+        onSubmitted: widget.onSubmitted,
+        onEditingComplete: widget.onEditingComplete,
       ),
-      style: widget.style,
-      keyboardType: widget.keyboardType,
-      textCapitalization: widget.textCapitalization,
-      maxLines: widget.maxLines,
-      onChanged: widget.onChanged,
-      onSubmitted: widget.onSubmitted,
-      onEditingComplete: widget.onEditingComplete,
     );
+  }
+
+  void _onPlatformViewCreated(int id) {
+    _channel = MethodChannel('com.example.app/native_text_input_$id');
+    widget.textInputController?.setChannel(_channel!);
+    _updateNativeStyle();
+    
+    // Set up method call handlers
+    _channel!.setMethodCallHandler((call) async {
+      switch (call.method) {
+        case 'onChanged':
+          final String text = call.arguments['text'];
+          _controller.text = text;
+          widget.onChanged?.call(text);
+          break;
+        case 'onSubmitted':
+          final String text = call.arguments['text'];
+          widget.onSubmitted?.call(text);
+          break;
+        case 'onEditingComplete':
+          widget.onEditingComplete?.call();
+          break;
+      }
+    });
+
+    // Set initial text if needed
+    if (_controller.text.isNotEmpty) {
+      _channel!.invokeMethod('setText', _controller.text);
+    }
+
+    // Handle focus changes
+    _focusNode.addListener(() {
+      if (_focusNode.hasFocus) {
+        _channel!.invokeMethod('focus');
+      } else {
+        _channel!.invokeMethod('clearFocus');
+      }
+    });
   }
 }

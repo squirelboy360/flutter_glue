@@ -1,8 +1,7 @@
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'dart:io' show Platform;
-
 import '../constants/modal_styles.dart';
 import '../fallbacks/modal_fallback.dart';
 
@@ -22,6 +21,17 @@ class ModalService {
     if (Platform.isIOS) {
       try {
         final config = configuration ?? const ModalConfiguration();
+        
+        // Calculate detents based on configuration
+        List<String> detents;
+        if (config.detents.isNotEmpty) {
+          detents = config.detents.map((d) => d.name).toList();
+        } else {
+          detents = [config.initialDetent.name];
+        }
+      
+                       
+        final selectedDetent = config.initialDetent?.name ?? detents.first;
 
         final methodArguments = {
           'route': route,
@@ -32,31 +42,64 @@ class ModalService {
             if (headerTitle != null) 'headerTitle': headerTitle,
           },
           'presentationStyle': config.presentationStyle.name,
-          'transitionStyle': config.transitionStyle.name,
-          'detents': config.detents.map((d) => d.height).toList(),
+          'transitionStyle': config.transitionStyle?.name ?? ModalTransitionStyle.coverVertical.name,
+          'detents': detents,
+          'selectedDetentIdentifier': selectedDetent,
           'isDismissible': config.isDismissible,
           'showDragIndicator': config.showDragIndicator,
           'enableSwipeGesture': config.enableSwipeGesture,
-          'swipeDismissDirection': config.swipeDismissDirection.name,
-          if (config.style.effectiveBackgroundColor != null)
-            'backgroundColor': config.style.effectiveBackgroundColor!.value,
-          if (config.style.cornerRadius != null)
-            'cornerRadius': config.style.cornerRadius,
-          'blurBackground': config.style.blurBackground,
-          'blurIntensity': config.style.blurIntensity,
-          'backgroundOpacity': config.style.backgroundOpacity,
-          if (config.style.animationDuration != null)
-            'animationDuration': config.style.animationDuration!.inMilliseconds,
-          if (config.headerStyle != null)
-            ..._headerStyleToMap(config.headerStyle!),
+          'swipeDismissDirection': config.swipeDismissDirection?.name ?? SwipeDismissDirection.down.name,
+          if (config.backgroundColor != null)
+            'backgroundColor': config.backgroundColor!.value,
+          if (config.cornerRadius != null)
+            'cornerRadius': config.cornerRadius,
+          'headerStyle': config.headerStyle != null ? _headerStyleToMap(config.headerStyle!) : null,
+          'onWillDismiss': config.onWillDismiss != null,
+          'onDismissed': config.onDismissed != null,
+          'onPresented': config.onPresented != null,
         };
 
-        return await _channel.invokeMethod<String>('showModal', methodArguments);
+        final modalId = await _channel.invokeMethod<String>('showModal', methodArguments);
+        
+        // Set up callback handlers
+        if (modalId != null) {
+          _channel.setMethodCallHandler((call) async {
+            switch (call.method) {
+              case 'onWillDismiss':
+                if (config.onWillDismiss != null) {
+                  return await config.onWillDismiss!();
+                }
+                return true;
+              case 'onDismissed':
+                config.onDismissed?.call();
+                break;
+              case 'onPresented':
+                config.onPresented?.call();
+                break;
+              case 'onDetentChanged':
+                final detent = call.arguments['detent'] as String?;
+                if (detent != null) {
+                  // Handle detent change if needed
+                }
+                break;
+            }
+          });
+        }
+
+        return modalId;
       } catch (e) {
         if (kDebugMode) {
           print("Error showing native modal: $e");
         }
-        return null;
+        return ModalFallback.showModal(
+          context: context,
+          route: route,
+          arguments: arguments,
+          showNativeHeader: showNativeHeader,
+          showCloseButton: showCloseButton,
+          headerTitle: headerTitle,
+          configuration: configuration,
+        );
       }
     } else {
       return ModalFallback.showModal(
@@ -73,16 +116,17 @@ class ModalService {
 
   static Map<String, dynamic> _headerStyleToMap(ModalHeaderStyle style) {
     return {
-      if (style.effectiveBackgroundColor != null)
-        'headerBackgroundColor': style.effectiveBackgroundColor!.value,
-      if (style.height != null) 'headerHeight': style.height,
+      if (style.backgroundColor != null)
+        'headerBackgroundColor': style.backgroundColor!.value,
       if (style.dividerColor != null)
         'headerDividerColor': style.dividerColor!.value,
-      'headerShowDivider': style.showDivider,
-      if (style.elevation != null) 'headerElevation': style.elevation,
+      if (style.height != null)
+        'headerHeight': style.height,
+      'showHeaderDivider': style.showDivider,
     };
   }
 
+  /// Dismiss a specific modal by ID
   static Future<bool> dismissModal(String modalId) async {
     if (Platform.isIOS) {
       try {
@@ -95,6 +139,7 @@ class ModalService {
     return false;
   }
 
+  /// Get list of active modal IDs
   static Future<List<String>> getActiveModals() async {
     if (Platform.isIOS) {
       try {
