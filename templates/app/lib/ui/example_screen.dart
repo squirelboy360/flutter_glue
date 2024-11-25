@@ -12,9 +12,13 @@ class ExampleScreen extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) => FTheme(
-        data: FThemes.zinc.light,
-        child: FScaffold(
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return FTheme(
+      data: theme.brightness == Brightness.dark 
+          ? FThemes.zinc.dark 
+          : FThemes.zinc.light,
+      child: FScaffold(
         contentPad: false,
           content: Column(
             mainAxisAlignment: MainAxisAlignment.start,
@@ -65,4 +69,5 @@ class ExampleScreen extends StatelessWidget {
           ),
         ),
       );
+  }
 }

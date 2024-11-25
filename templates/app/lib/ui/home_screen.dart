@@ -5,6 +5,13 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:forui/forui.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:example_app/core/routing/core/route_handler.dart';
+import 'package:example_app/core/services/native/triggers/modal.dart';
+import 'package:example_app/core/services/native/views/text_input_service.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:forui/forui.dart';
+import 'package:share_plus/share_plus.dart';
 
 class ItemData {
   final int id;

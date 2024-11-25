@@ -1,6 +1,8 @@
 import 'package:example_app/core/services/native/constants/modal_styles.dart';
 import 'package:flutter/material.dart';
+import 'package:forui/forui.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter/material.dart' as F; // Import FThemes
 
 class ModalFallback {
   static Future<String?> showModal({
@@ -20,23 +22,35 @@ class ModalFallback {
         isDismissible: configuration?.isDismissible ?? true,
         enableDrag: configuration?.enableSwipeGesture ?? true,
         isScrollControlled: true,
-        builder: (context) => Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (showNativeHeader) _buildHeader(context, headerTitle, showCloseButton),
-            Expanded(
-              child: Navigator(
-                onGenerateRoute: (_) => MaterialPageRoute(
-                  builder: (_) => Container(), // Placeholder
-                  settings: RouteSettings(
-                    name: route,
-                    arguments: arguments,
+        backgroundColor: Colors.transparent,
+        builder: (context) {
+          final theme = Theme.of(context);
+          return Theme(
+            data: theme,
+            child: FTheme(
+              data: theme.brightness == F.Brightness.dark 
+                  ? FThemes.zinc.dark 
+                  : FThemes.zinc.light,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (showNativeHeader) _buildHeader(context, headerTitle, showCloseButton),
+                  Expanded(
+                    child: Navigator(
+                      onGenerateRoute: (_) => MaterialPageRoute(
+                        builder: (_) => Container(), // Placeholder
+                        settings: RouteSettings(
+                          name: route,
+                          arguments: arguments,
+                        ),
+                      ),
+                    ),
                   ),
-                ),
+                ],
               ),
             ),
-          ],
-        ),
+          );
+        },
       );
     } else {
       // For non-sheet modals, just push once

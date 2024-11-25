@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart';
-import '../../../core/services/native/triggers/modal.dart';
-import '../routes.dart';
-import 'app_router.dart';
+import 'package:example_app/core/services/native/triggers/modal.dart';
 
-/// Handles navigation actions in the app
+/// Handles route and modal navigation
 class RouteHandler {
-  /// Global context for deep linking
+  /// Global context for navigation
   static BuildContext? globalContext;
 
-  /// Show a modal route
+  /// Show a modal with the given route
   static void showModal(
     BuildContext context,
     String route, {
@@ -17,38 +15,21 @@ class RouteHandler {
     bool showNativeHeader = true,
     bool showCloseButton = true,
   }) {
-    globalContext = context;
-    final appRoute = Routes.getRoute(route);
-    if (appRoute == null) return;
-
-    if (appRoute.isModal) {
-      ModalService.showModalWithRoute(
-        context: context,
-        route: route,
-        arguments: arguments ?? {},
-        showNativeHeader: showNativeHeader,
-        showCloseButton: showCloseButton,
-        headerTitle: headerTitle ?? appRoute.title,
-      );
-    } else {
-      AppRouter.router.push(route, extra: arguments);
-    }
+    ModalService.showModalWithRoute(
+      context: context,
+      route: route,
+      arguments: arguments ?? {},
+      showNativeHeader: showNativeHeader,
+      showCloseButton: showCloseButton,
+      headerTitle: headerTitle,
+    );
   }
 
-  /// Navigate to a route
-  static void pushRoute(String route, [Map<String, String>? arguments]) {
-    final context = AppRouter.navigatorKey.currentContext;
-    if (context == null) return;
-    globalContext = context;
-
-    AppRouter.router.push(route, extra: arguments);
-  }
-
-  /// Pop the current route
-  static void pop<T extends Object?>([T? result]) {
-    final context = AppRouter.navigatorKey.currentContext;
-    if (context == null) return;
-
-    AppRouter.router.pop(result);
+  /// Push a new route
+  static void pushRoute(String path, [Map<String, String>? params]) {
+    if (globalContext == null) return;
+    
+    final args = params ?? {};
+    Navigator.of(globalContext!).pushNamed(path, arguments: args);
   }
 }
