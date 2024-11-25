@@ -1,11 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:example_app/core/services/native/triggers/modal.dart';
 import 'package:example_app/core/services/native/constants/modal_styles.dart';
+import 'package:example_app/core/routing/routes.dart';
+import 'package:example_app/core/routing/core/app_router.dart';
 
 /// Handles route and modal navigation
 class RouteHandler {
   /// Global context for navigation
   static BuildContext? globalContext;
+
+  /// Build a widget for the given route
+  static Widget buildRoute(String route, Map<String, dynamic> arguments) {
+    final routeConfig = Routes.getRoute(route);
+    if (routeConfig == null) {
+      return const SizedBox(); // Return empty widget if route not found
+    }
+    return routeConfig.builder(globalContext ?? AppRouter.navigatorKey.currentContext!, arguments);
+  }
 
   /// Show a modal with the given route
   static void showModal(

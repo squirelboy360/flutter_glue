@@ -40,21 +40,36 @@ enum SwipeDismissDirection {
 }
 
 /// Sheet size configurations
-enum ModalDetent {
+class ModalDetent {
   /// Large height (90% of screen)
-  large(0.9),
+  static const large = ModalDetent._('large', 0.9);
   
-  /// Medium height (50% of screen)
-  medium(0.5),
+  /// Medium height (60% of screen)
+  static const medium = ModalDetent._('medium', 0.6);
   
-  /// Small peek at bottom (25% of screen)
-  small(0.25),
+  /// Small peek at bottom (30% of screen)
+  static const small = ModalDetent._('small', 0.3);
   
-  /// Custom height
-  custom(0.0);
+  /// Custom height (specify percentage between 0.0 and 1.0)
+  static ModalDetent custom(double percentage) {
+    assert(percentage > 0.0 && percentage <= 1.0, 'Percentage must be between 0.0 and 1.0');
+    return ModalDetent._('custom', percentage);
+  }
 
+  final String name;
   final double height;
-  const ModalDetent(this.height);
+  const ModalDetent._(this.name, this.height);
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ModalDetent &&
+          runtimeType == other.runtimeType &&
+          name == other.name &&
+          height == other.height;
+
+  @override
+  int get hashCode => name.hashCode ^ height.hashCode;
 }
 
 /// Header styling for modals
@@ -177,8 +192,8 @@ class ModalConfiguration {
     this.animationDuration,
     this.headerStyle,
     this.swipeDismissDirection = SwipeDismissDirection.down,
-    this.detents = const [ModalDetent.large],
-    this.initialDetent = ModalDetent.large,
+    this.detents = const [ModalDetent.small, ModalDetent.medium, ModalDetent.large],
+    this.initialDetent = ModalDetent.small,
     this.customDetentHeight,
     this.doneButtonText,
     this.onDonePressed,

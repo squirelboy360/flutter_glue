@@ -115,7 +115,8 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ],
           ),
-          FButton(style: FButtonStyle.secondary,
+          FButton(
+            style: FButtonStyle.secondary,
             onPress: _showShareSheet,
             label: const Icon(Icons.share),
           ),
@@ -143,14 +144,16 @@ class _HomeScreenState extends State<HomeScreen> {
                           context,
                           '/example',
                           headerTitle: item.title,
-showNativeHeader: false,
-configuration: ModalConfiguration(detents: [ModalDetent.small],),
+                          showNativeHeader: false,
+                          configuration: const ModalConfiguration(
+                            showDragIndicator: false,
+                            detents: [ModalDetent.small],
+                          ),
                           arguments: {
                             'img': item.imageUrl,
                             'title': item.title,
                             'description': item.description,
                           },
-
                         );
                       },
                       child: FCard(

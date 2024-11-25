@@ -1,276 +1,126 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import '../constants/modal_styles.dart';
-import 'package:go_router/go_router.dart';
-import 'package:example_app/core/routing/routes.dart';
+import '../../../routing/core/route_handler.dart';
 
 class ModalFallback {
-  static const _modalChannel = MethodChannel('native_modal_channel');
-  static final _activeModals = <BuildContext>{};
-
-  /// Track if a modal is currently displayed
-  static bool get hasActiveModal => _activeModals.isNotEmpty;
-
-  /// Add modal context to tracking
-  static void _trackModal(BuildContext context) {
-    _activeModals.add(context);
-  }
-
-  /// Remove modal context from tracking
-  static void _untrackModal(BuildContext context) {
-    _activeModals.remove(context);
-  }
-
-  /// Handle back navigation when modal is open
-  static Future<bool> handleModalBackPress(BuildContext context) async {
-    if (hasActiveModal) {
-      await closeModal(context);
-      return false; // Prevent app exit
-    }
-    return true; // Allow normal back navigation
-  }
-
-  static Widget _buildHeader(
-    BuildContext context, 
-    String? headerTitle, 
-    bool showCloseButton,
-    ModalConfiguration? configuration,
-  ) {
-    final theme = Theme.of(context);
-    
+  static Widget _buildDragHandle() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+      width: 32,
+      height: 4,
+      margin: const EdgeInsets.symmetric(vertical: 8),
       decoration: BoxDecoration(
-        color: configuration?.headerStyle?.backgroundColor ?? theme.appBarTheme.backgroundColor,
-        border: Border(
-          bottom: BorderSide(
-            color: configuration?.headerStyle?.dividerColor ?? theme.dividerColor,
-            width: 0.5,
-          ),
-        ),
+        color: Colors.grey[300],
+        borderRadius: BorderRadius.circular(2),
       ),
-      height: configuration?.headerStyle?.height ?? 56.0,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    );
+  }
+
+  static Widget _buildHeader({
+    required String? headerTitle,
+    required bool showNativeHeader,
+    required bool showCloseButton,
+    required ModalHeaderStyle? headerStyle,
+    required VoidCallback onClose,
+  }) {
+    if (!showNativeHeader) return const SizedBox.shrink();
+
+    return Container(
+      height: headerStyle?.height ?? 56,
+      decoration: BoxDecoration(
+        color: headerStyle?.backgroundColor ?? Colors.white,
+        border: headerStyle?.showDivider == true
+            ? Border(
+                bottom: BorderSide(
+                  color: headerStyle?.dividerColor ?? Colors.grey[300]!,
+                  width: 1,
+                ),
+              )
+            : null,
+      ),
+      child: Stack(
         children: [
-          Expanded(
-            child: Text(
-              headerTitle ?? '',
-              style: theme.textTheme.titleMedium,
-              overflow: TextOverflow.ellipsis,
+          if (headerTitle != null)
+            Center(
+              child: Text(
+                headerTitle,
+                style: const TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ),
-          ),
           if (showCloseButton)
-            IconButton(
-              icon: const Icon(Icons.close),
-              onPressed: () => Navigator.of(context).pop(),
+            Positioned(
+              right: 8,
+              top: 8,
+              child: IconButton(
+                icon: const Icon(Icons.close),
+                onPressed: onClose,
+              ),
             ),
         ],
       ),
     );
   }
 
-  static Widget _buildModalContent(
-    BuildContext context,
-    String route,
-    Map<String, dynamic> arguments,
-    ModalConfiguration? configuration,
-  ) {
-    final location = route.startsWith('/') ? route : '/$route';
-    final screenHeight = MediaQuery.of(context).size.height;
-    final padding = MediaQuery.of(context).padding;
-    final availableHeight = screenHeight - padding.top - padding.bottom;
-    
-    double modalHeight = _getDetentHeight(
-      context, 
-      configuration?.initialDetent ?? ModalDetent.large,
-      configuration?.customDetentHeight,
-    );
-
-    // Ensure the modal height doesn't exceed available space
-    modalHeight = modalHeight.clamp(0.0, availableHeight);
-
-    return SizedBox(
-      width: double.infinity,
-      height: modalHeight,
-      child: Navigator(
-        onGenerateRoute: (settings) {
-          final routeConfig = Routes.getRoute(location);
-          if (routeConfig == null) return null;
-
-          return MaterialPageRoute(
-            builder: (context) => routeConfig.builder(context, arguments),
-            settings: RouteSettings(
-              name: location,
-              arguments: arguments,
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  static double _getDetentHeight(BuildContext context, ModalDetent detent, double? customHeight) {
-    final screenHeight = MediaQuery.of(context).size.height;
-    final padding = MediaQuery.of(context).padding;
-    final availableHeight = screenHeight - padding.top - padding.bottom;
-
-    switch (detent) {
-      case ModalDetent.large:
-        return availableHeight * 0.9;
-      case ModalDetent.medium:
-        return availableHeight * 0.6;
-      case ModalDetent.small:
-        return availableHeight * 0.3;
-      case ModalDetent.custom:
-        return customHeight ?? availableHeight * 0.6;
-    }
-  }
-
   static Future<String?> showModal({
     required BuildContext context,
     required String route,
-    required Map<String, dynamic> arguments,
+    required Map<String, String> arguments,
     bool showNativeHeader = true,
     bool showCloseButton = true,
     String? headerTitle,
     ModalConfiguration? configuration,
   }) async {
-    final modalId = 'flutter_modal_${DateTime.now().millisecondsSinceEpoch}';
-    final theme = Theme.of(context);
-    
-    _trackModal(context);
-    
-    Future<bool> handleWillDismiss() async {
-      if (configuration?.onWillDismiss != null) {
-        return await configuration!.onWillDismiss!();
-      }
-      return true;
-    }
-
-    void handleDismissed() {
-      _untrackModal(context);
-      configuration?.onDismissed?.call();
-    }
-
-    if (configuration?.presentationStyle == ModalPresentationStyle.sheet) {
-      await showModalBottomSheet(
-        context: context,
-        isDismissible: configuration?.isDismissible ?? true,
-        enableDrag: configuration?.enableSwipeGesture ?? true,
-        backgroundColor: Colors.transparent,
-        barrierColor: Colors.black54,
-        isScrollControlled: true,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(configuration?.cornerRadius ?? 12),
-            topRight: Radius.circular(configuration?.cornerRadius ?? 12),
+final config = configuration ?? const ModalConfiguration();
+final detents = config.detents;
+final initialDetent = detents.length == 1 ? detents.first : config.initialDetent;
+    return showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isDismissible: config.isDismissible,
+      enableDrag: config.enableSwipeGesture,
+      isScrollControlled: true,
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * initialDetent.height,
+      ),
+      builder: (context) {
+        final screenHeight = MediaQuery.of(context).size.height;
+        final modalHeight = screenHeight * initialDetent.height;
+        
+        return Container(
+          height: modalHeight,
+          decoration: BoxDecoration(
+            color: config.backgroundColor ?? Colors.white,
+            borderRadius: BorderRadius.vertical(
+              top: Radius.circular(config.cornerRadius ?? 10),
+            ),
           ),
-        ),
-        builder: (context) => WillPopScope(
-          onWillPop: () => handleModalBackPress(context),
-          child: Theme(
-            data: theme,
-            child: Container(
-              decoration: BoxDecoration(
-                color: configuration?.backgroundColor ?? theme.scaffoldBackgroundColor,
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(configuration?.cornerRadius ?? 12),
-                  topRight: Radius.circular(configuration?.cornerRadius ?? 12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (config.showDragIndicator) _buildDragHandle(),
+              _buildHeader(
+                headerTitle: headerTitle,
+                showNativeHeader: showNativeHeader,
+                showCloseButton: showCloseButton,
+                headerStyle: config.headerStyle,
+                onClose: () => Navigator.of(context).pop(),
+              ),
+              Expanded(
+                child: SingleChildScrollView(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      minHeight: modalHeight - (config.showDragIndicator ? 20 : 0) - (showNativeHeader ? (config.headerStyle?.height ?? 56) : 0),
+                    ),
+                    child: RouteHandler.buildRoute(route, arguments),
+                  ),
                 ),
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (configuration?.showDragIndicator ?? true)
-                    Container(
-                      margin: const EdgeInsets.only(top: 8),
-                      width: 32,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: Colors.grey[300],
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                  if (showNativeHeader)
-                    _buildHeader(
-                      context,
-                      headerTitle,
-                      showCloseButton,
-                      configuration,
-                    ),
-                  Flexible(
-                    child: _buildModalContent(
-                      context,
-                      route,
-                      arguments,
-                      configuration,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            ],
           ),
-        ),
-      ).then((_) => handleDismissed());
-    } else {
-      await showDialog(
-        context: context,
-        barrierDismissible: configuration?.isDismissible ?? true,
-        builder: (context) => WillPopScope(
-          onWillPop: () => handleModalBackPress(context),
-          child: Theme(
-            data: theme,
-            child: Dialog(
-              backgroundColor: configuration?.backgroundColor ?? theme.scaffoldBackgroundColor,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(configuration?.cornerRadius ?? 0),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (showNativeHeader)
-                    _buildHeader(
-                      context,
-                      headerTitle,
-                      showCloseButton,
-                      configuration,
-                    ),
-                  Flexible(
-                    child: _buildModalContent(
-                      context,
-                      route,
-                      arguments,
-                      configuration,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ).then((_) => handleDismissed());
-    }
-
-    configuration?.onPresented?.call();
-    return modalId;
-  }
-
-  static Future<void> closeModal(BuildContext context) async {
-    if (!hasActiveModal) return;
-
-    try {
-      await _modalChannel.invokeMethod('closeModal');
-    } catch (e) {
-      // Native modal might not exist, continue with Flutter modal closing
-    }
-
-    if (context.mounted) {
-      Navigator.of(context, rootNavigator: true).pop();
-    }
-  }
-
-  static bool shouldHandleBackPress(BuildContext context) {
-    return hasActiveModal;
+        );
+      },
+    );
   }
 }
