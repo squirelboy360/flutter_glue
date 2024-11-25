@@ -1,5 +1,6 @@
 import 'package:example_app/ui/example_screen.dart';
 import 'package:example_app/ui/home_screen.dart';
+import 'package:example_app/ui/settings_screen.dart';
 import 'package:flutter/material.dart';
 import 'core/route_handler.dart';
 
@@ -70,6 +71,29 @@ class Routes {
       path: '/license',
       isModal: true,
       builder: (context, args) => const LicensePage(),
+    ),
+    '/settings': AppRoute(
+      path: '/settings',
+      isModal: true, 
+      builder: (context, args) => SettingsScreen(args: args),
+      title: 'Settings', 
+      onDeepLink: (uri) {
+        // Example: myapp://settings?theme=dark
+        final theme = uri.queryParameters['theme'];
+        if (theme != null) {
+          RouteHandler.showModal(
+            RouteHandler.globalContext!,
+            '/settings',
+            headerTitle: 'Settings',
+            arguments: {
+              'theme': theme,
+              ...uri.queryParameters,
+            },
+          );
+          return true;
+        }
+        return false;
+      },
     ),
   };
 
