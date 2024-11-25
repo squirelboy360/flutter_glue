@@ -11,7 +11,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  cupertino_icons: ^1.0.8
+  cupertino_icons: ^1.0.2
   bloc: ^8.1.4
   forui: ^0.6.1
   http: ^1.2.2
@@ -21,6 +21,8 @@ dependencies:
   flutter_bloc: ^8.1.6
   hydrated_bloc: ^9.1.5
   rename_app: ^1.6.1
+  app_links: ^3.5.0
+  share_plus: ^7.2.1
 
 dev_dependencies:
   flutter_test:

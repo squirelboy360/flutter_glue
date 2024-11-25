@@ -1,8 +1,12 @@
+import 'dart:async';
+
+import 'package:example_app/core/services/native/triggers/modal.dart';
 import 'package:example_app/core/services/native/views/text_input_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:forui/forui.dart';
-import '../core/services/native/triggers/modal.dart';
+import 'package:share_plus/share_plus.dart';
+import '../core/services/deep_link_service.dart';
 
 class ItemData {
   final int id;
@@ -28,11 +32,45 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   late List<ItemData> items;
   bool isLoading = true;
+  late StreamSubscription<Uri> _deepLinkSubscription;
+  final _deepLinkService = DeepLinkService();
 
   @override
   void initState() {
     super.initState();
+    _initializeDeepLinks();
     _generateItems();
+  }
+
+  Future<void> _initializeDeepLinks() async {
+    await _deepLinkService.initialize();
+    _deepLinkSubscription =
+        _deepLinkService.deepLinkStream.listen(_handleDeepLink);
+  }
+
+  void _handleDeepLink(Uri uri) {
+    // Example deep link handling
+    switch (uri.path) {
+      case '/example':
+        final message = uri.queryParameters['message'];
+        if (message != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Deep link message: $message')),
+          );
+        }
+        break;
+      case '/share':
+        _showShareSheet(uri.queryParameters['text']);
+        break;
+    }
+  }
+
+  void _showShareSheet([String? text]) async {
+    await Share.share(
+      text ??
+          'Check out this awesome app!\nglue://example.com/example?message=Hello',
+      subject: 'App Invitation',
+    );
   }
 
   void _generateItems() {
@@ -80,19 +118,27 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return FScaffold(
-      header: FHeader(
-        title: const Text('Nature Gallery'),
-        actions: [
-          IconButton(
-            icon: FIcon(FAssets.icons.info),
-            onPressed: () {
-              ModalService.showModalWithRoute(
-                context: context,
-                route: '/license',
-                arguments: {},
-                showNativeHeader: false,
-              );
-            },
+      header: Column(
+        children: [
+          FHeader(
+            title: const Text('Nature Gallery'),
+            actions: [
+              IconButton.outlined(
+                icon: FIcon(FAssets.icons.info),
+                onPressed: () {
+                  ModalService.showModalWithRoute(
+                    context: context,
+                    route: '/license',
+                    arguments: {},
+                    showNativeHeader: false,
+                  );
+                },
+              ),
+            ],
+          ),
+          FButton(style: FButtonStyle.secondary,
+            onPress: _showShareSheet,
+            label: const Icon(Icons.share),
           ),
         ],
       ),
@@ -202,14 +248,14 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Center(
                 child: TextInputService.createInput(
               height: 60,
-              config:  const TextConfig(
+              config: const TextConfig(
                 placeholder: 'Search',
                 backgroundColor: Colors.orange,
                 autocorrect: false,
                 textStyle: TextStyle(fontSize: 20),
-               maxLines: 1,keyboardType: TextInputType.text,
+                maxLines: 1,
+                keyboardType: TextInputType.text,
                 padding: EdgeInsets.symmetric(horizontal: 16),
-              
               ),
               onChanged: (value) {
                 if (kDebugMode) {
@@ -219,5 +265,12 @@ class _HomeScreenState extends State<HomeScreen> {
             ))),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _deepLinkSubscription.cancel();
+    _deepLinkService.dispose();
+    super.dispose();
   }
 }
