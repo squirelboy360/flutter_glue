@@ -200,9 +200,17 @@ class _HomeScreenState extends State<HomeScreen> {
               borderRadius: BorderRadius.circular(8),
             ),
             child: Center(
-                child: TextInputService.createDefaultInput(
+                child: TextInputService.createInput(
               height: 60,
-              placeholder: "Enter text",
+              config:  const TextConfig(
+                placeholder: 'Search',
+                backgroundColor: Colors.orange,
+                autocorrect: false,
+                textStyle: TextStyle(fontSize: 20),
+               maxLines: 1,keyboardType: TextInputType.text,
+                padding: EdgeInsets.symmetric(horizontal: 16),
+              
+              ),
               onChanged: (value) {
                 if (kDebugMode) {
                   print("Text changed: $value");
