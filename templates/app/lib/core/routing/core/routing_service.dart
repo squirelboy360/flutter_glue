@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../services/deep_link_service.dart';
-import 'route_config.dart';
+import '../../services/deep_link_service.dart';
+import '../route_config.dart';
 
 class RoutingService {
   static final RoutingService _instance = RoutingService._internal();
@@ -13,7 +13,7 @@ class RoutingService {
 
   void initialize() {
     router = _createRouter();
-    _initializeDeepLinks();
+    _deepLinkService.initialize();
   }
 
   GoRouter _createRouter() {
@@ -27,7 +27,7 @@ class RoutingService {
             path: config.path,
             builder: (context, state) => config.builder(
               context,
-              _parseRouteParams(config, state.queryParameters),
+              _parseRouteParams(config, state.uri.queryParameters),
             ),
           ),
         );
@@ -39,7 +39,7 @@ class RoutingService {
               fullscreenDialog: true,
               child: config.builder(
                 context,
-                _parseRouteParams(config, state.queryParameters),
+                _parseRouteParams(config, state.uri.queryParameters),
               ),
             ),
           ),
@@ -57,25 +57,6 @@ class RoutingService {
     );
   }
 
-  void _initializeDeepLinks() {
-    _deepLinkService.initialize();
-    _deepLinkService.deepLinkStream.listen(_handleDeepLink);
-  }
-
-  void _handleDeepLink(Uri uri) {
-    final path = uri.path;
-    final params = uri.queryParameters;
-
-    // Find matching route config
-    final config = AppRoutes.routes.firstWhere(
-      (route) => route.deepLinkPath == path,
-      orElse: () => AppRoutes.home,
-    );
-
-    // Navigate using go_router
-    router.push(config.path + _buildQueryString(params));
-  }
-
   Map<String, dynamic> _parseRouteParams(
     RouteConfig config,
     Map<String, String> params,
@@ -88,9 +69,9 @@ class RoutingService {
 
   String _buildQueryString(Map<String, String> params) {
     if (params.isEmpty) return '';
-    return '?' + params.entries
+    return '?${params.entries
         .map((e) => '${e.key}=${Uri.encodeComponent(e.value)}')
-        .join('&');
+        .join('&')}';
   }
 
   // Navigation helpers

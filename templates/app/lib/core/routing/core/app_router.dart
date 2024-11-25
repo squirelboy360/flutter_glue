@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../ui/example_screen.dart';
-import '../../ui/home_screen.dart';
+import '../../../ui/example_screen.dart';
+import '../../../ui/home_screen.dart';
 
 // Global navigator key
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -74,3 +74,21 @@ class AppRouter {
     }
   }
 }
+
+
+/// Simple route declaration for the app
+class AppRoute {
+  final String path;
+  final Widget Function(BuildContext, Map<String, dynamic>) builder;
+  final bool isModal;
+  final String? title;
+
+  const AppRoute({
+    required this.path,
+    required this.builder,
+    this.isModal = false,
+    this.title,
+  });
+}
+
+

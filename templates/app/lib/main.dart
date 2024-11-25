@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; // Add this import
-import 'package:example_app/core/routing/app_router.dart';
+import 'package:flutter/services.dart';
+import 'package:example_app/core/routing/core/app_router.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+  SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   AppRouter.initialize();
   runApp(const MyApp());
 }
@@ -23,6 +24,22 @@ class MyApp extends StatelessWidget {
       },
       child: MaterialApp.router(
         routerConfig: AppRouter.router,
+        title: 'Example App',
+        theme: ThemeData(
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: Colors.blue,
+            brightness: Brightness.light,
+          ),
+          useMaterial3: true,
+        ),
+        darkTheme: ThemeData(
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: Colors.blue,
+            brightness: Brightness.dark,
+          ),
+          useMaterial3: true,
+        ),
+        themeMode: ThemeMode.system,
         debugShowCheckedModeBanner: false,
       ),
     );
