@@ -144,10 +144,12 @@ class _HomeScreenState extends State<HomeScreen> {
                           context,
                           '/example',
                           headerTitle: item.title,
-                          showNativeHeader: false,
-                          configuration: const ModalConfiguration(
+                          showCloseButton: true,
+                          showNativeHeader: true,
+                          configuration:  ModalConfiguration(
                             showDragIndicator: false,
-                            detents: [ModalDetent.small],
+                            headerStyle: ModalHeaderStyle(backgroundColor: Colors.black.withOpacity(0.5)),
+                            detents: [ModalDetent.medium],
                           ),
                           arguments: {
                             'img': item.imageUrl,
