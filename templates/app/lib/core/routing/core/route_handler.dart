@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:example_app/core/services/native/triggers/modal.dart';
+import 'package:example_app/core/services/native/constants/modal_styles.dart';
 
 /// Handles route and modal navigation
 class RouteHandler {
@@ -14,6 +15,7 @@ class RouteHandler {
     Map<String, String>? arguments,
     bool showNativeHeader = true,
     bool showCloseButton = true,
+    ModalConfiguration? configuration,
   }) {
     ModalService.showModalWithRoute(
       context: context,
@@ -22,6 +24,14 @@ class RouteHandler {
       showNativeHeader: showNativeHeader,
       showCloseButton: showCloseButton,
       headerTitle: headerTitle,
+      configuration: configuration ?? const ModalConfiguration(
+        presentationStyle: ModalPresentationStyle.sheet,
+        detents: [ModalDetent.medium, ModalDetent.large],
+        initialDetent: ModalDetent.medium,
+        isDismissible: true,
+        enableSwipeGesture: true,
+        showDragIndicator: true,
+      ),
     );
   }
 

@@ -12,352 +12,178 @@ enum ModalPresentationStyle {
   formSheet,
   
   /// Side sheet from right
-  sideSheet,
-  
-  /// Popup style
-  popup;
-
-  const ModalPresentationStyle();
+  pageSheet,
 }
 
-/// Modal transition animations
+/// Modal transition styles
 enum ModalTransitionStyle {
-  /// Default platform transition
-  automatic,
+  /// Default transition
+  coverVertical,
   
-  /// Slide up from bottom
-  bottomToTop,
-  
-  /// Fade in/out
+  /// Fade transition
   fade,
   
-  /// Scale up/down
-  zoom,
-  
-  /// Slide from right/left
-  horizontal;
+  /// Cross dissolve
+  crossDissolve,
+}
 
-  const ModalTransitionStyle();
+/// Swipe dismiss directions
+enum SwipeDismissDirection {
+  /// Dismiss by swiping down
+  down,
+  
+  /// Dismiss by swiping up
+  up,
+  
+  /// No swipe dismiss
+  none,
 }
 
 /// Sheet size configurations
-class ModalDetent {
-  /// Small peek at bottom (25% of screen)
-  static const small = ModalDetent._(0.25);
+enum ModalDetent {
+  /// Large height (90% of screen)
+  large(0.9),
   
   /// Medium height (50% of screen)
-  static const medium = ModalDetent._(0.5);
+  medium(0.5),
   
-  /// Large height (90% of screen)
-  static const large = ModalDetent._(0.9);
+  /// Small peek at bottom (25% of screen)
+  small(0.25),
   
-  /// Full height
-  static const full = ModalDetent._(1.0);
+  /// Custom height
+  custom(0.0);
 
-  /// The height fraction (0.0 to 1.0)
   final double height;
-
-  /// Create a custom height detent
-  const ModalDetent.custom(this.height) : assert(height > 0 && height <= 1.0);
-  const ModalDetent._(this.height);
+  const ModalDetent(this.height);
 }
 
-/// Swipe/drag gesture configuration
-enum SwipeDismissDirection {
-  vertical,
-  horizontal,
-  all,
-  none;
-
-  const SwipeDismissDirection();
-}
-
-/// Colors for modal presentation
-class ModalColors {
-  // Platform adaptive colors
-  static const defaultBackground = Color(0xFFFFFFFF);
-  static const dimmedBackground = Color(0xFFF5F5F5);
-  static const darkBackground = Color(0xFF121212);
-  static const transparentBackground = Colors.transparent;
-  
-  // iOS specific colors
-  static const iosSheetBackground = Color(0xF0F9F9F9);
-  static const iosHeaderBackground = Color(0xFFF8F8F8);
-  static const iosDivider = Color(0xFFE0E0E0);
-  
-  // Material specific colors
-  static const materialSheetBackground = Color(0xFFFFFFFF);
-  static const materialBarrierColor = Color(0x80000000);
-  static const materialHeaderBackground = Color(0xFFFAFAFA);
-  
-  /// Convert hex string to Color
-  /// Accepts formats: '#RRGGBB', '#RRGGBBAA', 'RRGGBB', 'RRGGBBAA'
-  static Color? fromHex(String hexString) {
-    try {
-      final buffer = StringBuffer();
-      final hex = hexString.replaceFirst('#', '');
-      
-      if (hex.length == 6) {
-        buffer.write('ff');
-        buffer.write(hex);
-      } else if (hex.length == 8) {
-        buffer.write(hex);
-      } else {
-        return null;
-      }
-      
-      return Color(int.parse(buffer.toString(), radix: 16));
-    } catch (_) {
-      return null;
-    }
-  }
-}
-
-/// Complete visual styling for modals
-class ModalStyle {
-  /// Background color (using Color)
-  final Color? backgroundColor;
-  
-  /// Background color (using hex string)
-  final String? backgroundHexColor;
-  
-  /// Corner radius for the modal
-  final double? cornerRadius;
-  
-  /// Whether to blur the background behind the modal
-  final bool blurBackground;
-  
-  /// Background blur intensity (0.0 to 1.0)
-  final double blurIntensity;
-  
-  /// Background opacity (0.0 to 1.0)
-  final double backgroundOpacity;
-  
-  /// Custom shadow
-  final BoxShadow? shadow;
-  
-  /// Material elevation
-  final double? elevation;
-  
-  /// Border styling
-  final Border? border;
-  
-  /// Background gradient
-  final Gradient? gradient;
-  
-  /// Barrier color when modal is shown
-  final Color? barrierColor;
-  
-  /// Whether tapping the barrier dismisses the modal
-  final bool barrierDismissible;
-  
-  /// Animation duration for presenting/dismissing
-  final Duration? animationDuration;
-  
-  /// Whether to maintain state when modal is hidden
-  final bool maintainState;
-  
-  /// Safe area handling
-  final bool useSafeArea;
-
-  const ModalStyle({
-    this.backgroundColor,
-    this.backgroundHexColor,
-    this.cornerRadius,
-    this.blurBackground = false,
-    this.blurIntensity = 0.5,
-    this.backgroundOpacity = 1.0,
-    this.shadow,
-    this.elevation,
-    this.border,
-    this.gradient,
-    this.barrierColor,
-    this.barrierDismissible = true,
-    this.animationDuration,
-    this.maintainState = true,
-    this.useSafeArea = true,
-  }) : assert(
-         backgroundColor == null || backgroundHexColor == null,
-         'Cannot specify both backgroundColor and backgroundHexColor'
-       );
-
-  /// Get the effective background color
-  Color? get effectiveBackgroundColor {
-    if (backgroundColor != null) return backgroundColor;
-    if (backgroundHexColor != null) {
-      return ModalColors.fromHex(backgroundHexColor!);
-    }
-    return null;
-  }
-
-  /// Get the effective shadow
-  BoxShadow get effectiveShadow => shadow ?? BoxShadow(
-    color: Colors.black.withOpacity(0.1),
-    blurRadius: 10,
-    spreadRadius: 0,
-    offset: const Offset(0, 2),
-  );
-
-  /// Create a copy with some properties replaced
-  ModalStyle copyWith({
-    Color? backgroundColor,
-    String? backgroundHexColor,
-    double? cornerRadius,
-    bool? blurBackground,
-    double? blurIntensity,
-    double? backgroundOpacity,
-    BoxShadow? shadow,
-    double? elevation,
-    Border? border,
-    Gradient? gradient,
-    Color? barrierColor,
-    bool? barrierDismissible,
-    Duration? animationDuration,
-    bool? maintainState,
-    bool? useSafeArea,
-  }) {
-    return ModalStyle(
-      backgroundColor: backgroundColor ?? this.backgroundColor,
-      backgroundHexColor: backgroundHexColor ?? this.backgroundHexColor,
-      cornerRadius: cornerRadius ?? this.cornerRadius,
-      blurBackground: blurBackground ?? this.blurBackground,
-      blurIntensity: blurIntensity ?? this.blurIntensity,
-      backgroundOpacity: backgroundOpacity ?? this.backgroundOpacity,
-      shadow: shadow ?? this.shadow,
-      elevation: elevation ?? this.elevation,
-      border: border ?? this.border,
-      gradient: gradient ?? this.gradient,
-      barrierColor: barrierColor ?? this.barrierColor,
-      barrierDismissible: barrierDismissible ?? this.barrierDismissible,
-      animationDuration: animationDuration ?? this.animationDuration,
-      maintainState: maintainState ?? this.maintainState,
-      useSafeArea: useSafeArea ?? this.useSafeArea,
-    );
-  }
-}
-
-/// Header styling configuration
+/// Header styling for modals
 class ModalHeaderStyle {
+  /// Background color for the header
   final Color? backgroundColor;
-  final String? backgroundHexColor;
-  final TextStyle? titleStyle;
-  final Color? dividerColor;
-  final EdgeInsets? padding;
+  
+  /// Height of the header
   final double? height;
-  final Widget? leading;
-  final List<Widget>? actions;
+  
+  /// Color of the divider
+  final Color? dividerColor;
+  
+  /// Whether to show the divider
   final bool showDivider;
+
+  /// Elevation of the header
   final double? elevation;
-  final Border? border;
-  final Gradient? gradient;
+
+  /// Effective background color considering theme
+  Color? get effectiveBackgroundColor => backgroundColor;
 
   const ModalHeaderStyle({
     this.backgroundColor,
-    this.backgroundHexColor,
-    this.titleStyle,
-    this.dividerColor,
-    this.padding,
     this.height,
-    this.leading,
-    this.actions,
+    this.dividerColor,
     this.showDivider = true,
     this.elevation,
-    this.border,
-    this.gradient,
   });
-
-  Color? get effectiveBackgroundColor {
-    if (backgroundColor != null) return backgroundColor;
-    if (backgroundHexColor != null) {
-      return ModalColors.fromHex(backgroundHexColor!);
-    }
-    return null;
-  }
-
-  ModalHeaderStyle copyWith({
-    Color? backgroundColor,
-    String? backgroundHexColor,
-    TextStyle? titleStyle,
-    Color? dividerColor,
-    EdgeInsets? padding,
-    double? height,
-    Widget? leading,
-    List<Widget>? actions,
-    bool? showDivider,
-    double? elevation,
-    Border? border,
-    Gradient? gradient,
-  }) {
-    return ModalHeaderStyle(
-      backgroundColor: backgroundColor ?? this.backgroundColor,
-      backgroundHexColor: backgroundHexColor ?? this.backgroundHexColor,
-      titleStyle: titleStyle ?? this.titleStyle,
-      dividerColor: dividerColor ?? this.dividerColor,
-      padding: padding ?? this.padding,
-      height: height ?? this.height,
-      leading: leading ?? this.leading,
-      actions: actions ?? this.actions,
-      showDivider: showDivider ?? this.showDivider,
-      elevation: elevation ?? this.elevation,
-      border: border ?? this.border,
-      gradient: gradient ?? this.gradient,
-    );
-  }
 }
 
 /// Complete modal configuration
 class ModalConfiguration {
+  /// Presentation style for the modal
   final ModalPresentationStyle presentationStyle;
-  final ModalTransitionStyle transitionStyle;
-  final List<ModalDetent> detents;
-  final bool isDismissible;
-  final bool showDragIndicator;
-  final bool enableSwipeGesture;
-  final SwipeDismissDirection swipeDismissDirection;
-  final ModalStyle style;
-  final ModalHeaderStyle? headerStyle;
-  final bool enableDrag;
-  final double? dragStartThreshold;
   
+  /// Transition style for the modal
+  final ModalTransitionStyle transitionStyle;
+
+  /// Whether the modal is dismissible
+  final bool isDismissible;
+  
+  /// Whether to enable swipe gesture
+  final bool enableSwipeGesture;
+  
+  /// Whether to show drag indicator
+  final bool showDragIndicator;
+  
+  /// Corner radius for the modal
+  final double? cornerRadius;
+  
+  /// Background color (using Color)
+  final Color? backgroundColor;
+  
+  /// Padding for the modal
+  final EdgeInsets padding;
+  
+  /// Whether to use rounded corners
+  final bool roundedCorners;
+  
+  /// Custom height for the modal
+  final double? customHeight;
+
+  /// Whether to blur the background
+  final bool blurBackground;
+
+  /// Blur intensity (0.0 to 1.0)
+  final double blurIntensity;
+
+  /// Background opacity (0.0 to 1.0)
+  final double backgroundOpacity;
+
+  /// Animation duration
+  final Duration? animationDuration;
+
+  /// Header styling for the modal
+  final ModalHeaderStyle? headerStyle;
+
+  /// Swipe dismiss direction
+  final SwipeDismissDirection swipeDismissDirection;
+  
+  /// List of detents for the modal
+  final List<ModalDetent> detents;
+  
+  /// Initial detent for the modal
+  final ModalDetent initialDetent;
+  
+  /// Custom detent height for the modal
+  final double? customDetentHeight;
+  
+  /// Text for the done button
+  final String? doneButtonText;
+  
+  /// Callback for when the done button is pressed
+  final VoidCallback? onDonePressed;
+  
+  /// Callback for when the modal is dismissed
+  final VoidCallback? onDismissed;
+  
+  /// Callback for when the modal is presented
+  final VoidCallback? onPresented;
+  
+  /// Callback for when the modal will be dismissed
+  final Future<bool> Function()? onWillDismiss;
+
   const ModalConfiguration({
     this.presentationStyle = ModalPresentationStyle.sheet,
-    this.transitionStyle = ModalTransitionStyle.automatic,
-    this.detents = const [ModalDetent.large],
+    this.transitionStyle = ModalTransitionStyle.coverVertical,
     this.isDismissible = true,
-    this.showDragIndicator = true,
     this.enableSwipeGesture = true,
-    this.swipeDismissDirection = SwipeDismissDirection.vertical,
-    this.style = const ModalStyle(),
+    this.showDragIndicator = true,
+    this.cornerRadius = 12.0,
+    this.backgroundColor,
+    this.padding = const EdgeInsets.all(16.0),
+    this.roundedCorners = true,
+    this.customHeight,
+    this.blurBackground = false,
+    this.blurIntensity = 0.5,
+    this.backgroundOpacity = 0.5,
+    this.animationDuration,
     this.headerStyle,
-    this.enableDrag = true,
-    this.dragStartThreshold,
+    this.swipeDismissDirection = SwipeDismissDirection.down,
+    this.detents = const [ModalDetent.large],
+    this.initialDetent = ModalDetent.large,
+    this.customDetentHeight,
+    this.doneButtonText,
+    this.onDonePressed,
+    this.onDismissed,
+    this.onPresented,
+    this.onWillDismiss,
   });
-
-  ModalConfiguration copyWith({
-    ModalPresentationStyle? presentationStyle,
-    ModalTransitionStyle? transitionStyle,
-    List<ModalDetent>? detents,
-    bool? isDismissible,
-    bool? showDragIndicator,
-    bool? enableSwipeGesture,
-    SwipeDismissDirection? swipeDismissDirection,
-    ModalStyle? style,
-    ModalHeaderStyle? headerStyle,
-    bool? enableDrag,
-    double? dragStartThreshold,
-  }) {
-    return ModalConfiguration(
-      presentationStyle: presentationStyle ?? this.presentationStyle,
-      transitionStyle: transitionStyle ?? this.transitionStyle,
-      detents: detents ?? this.detents,
-      isDismissible: isDismissible ?? this.isDismissible,
-      showDragIndicator: showDragIndicator ?? this.showDragIndicator,
-      enableSwipeGesture: enableSwipeGesture ?? this.enableSwipeGesture,
-      swipeDismissDirection: swipeDismissDirection ?? this.swipeDismissDirection,
-      style: style ?? this.style,
-      headerStyle: headerStyle ?? this.headerStyle,
-      enableDrag: enableDrag ?? this.enableDrag,
-      dragStartThreshold: dragStartThreshold ?? this.dragStartThreshold,
-    );
-  }
 }

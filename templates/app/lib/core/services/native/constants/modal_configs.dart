@@ -1,84 +1,104 @@
-import 'dart:ui';
-
-
+import 'package:flutter/material.dart';
 import 'modal_styles.dart';
 
+/// Modal header style configuration
+class ModalHeaderStyle {
+  final Color? backgroundColor;
+  final Color? dividerColor;
+  final double? height;
+  final bool showDivider;
 
-
-/// Complete modal configuration
-class ModalConfiguration {
-  final ModalPresentationStyle presentationStyle;
-  final ModalTransitionStyle transitionStyle;
-  final List<ModalDetent> detents;
-  final bool isDismissible;
-  final bool showDragIndicator;
-  final bool enableSwipeGesture;
-  final SwipeDismissDirection swipeDismissDirection;
-  final ModalStyle style;
-  final ModalHeaderStyle? headerStyle;
-  final Duration? animationDuration;
-  final bool maintainState;
-  final bool useSafeArea;
-  final bool enableDrag;
-  final double? dragStartThreshold;
-  final bool barrierDismissible;
-  final Color? barrierColor;
-  
-  const ModalConfiguration({
-    this.presentationStyle = ModalPresentationStyle.sheet,
-    this.transitionStyle = ModalTransitionStyle.automatic,
-    this.detents = const [ModalDetent.large],
-    this.isDismissible = true,
-    this.showDragIndicator = true,
-    this.enableSwipeGesture = true,
-    this.swipeDismissDirection = SwipeDismissDirection.vertical,
-    this.style = const ModalStyle(),
-    this.headerStyle,
-    this.animationDuration,
-    this.maintainState = true,
-    this.useSafeArea = true,
-    this.enableDrag = true,
-    this.dragStartThreshold,
-    this.barrierDismissible = true,
-    this.barrierColor,
+  const ModalHeaderStyle({
+    this.backgroundColor,
+    this.dividerColor,
+    this.height,
+    this.showDivider = true,
   });
 
-  /// Create a copy with some properties replaced
+  ModalHeaderStyle copyWith({
+    Color? backgroundColor,
+    Color? dividerColor,
+    double? height,
+    bool? showDivider,
+  }) {
+    return ModalHeaderStyle(
+      backgroundColor: backgroundColor ?? this.backgroundColor,
+      dividerColor: dividerColor ?? this.dividerColor,
+      height: height ?? this.height,
+      showDivider: showDivider ?? this.showDivider,
+    );
+  }
+}
+
+/// Modal configuration
+class ModalConfiguration {
+  final ModalPresentationStyle presentationStyle;
+  final List<ModalDetent>? detents;
+  final ModalDetent? initialDetent;
+  final double? customDetentHeight;
+  final ModalTransitionStyle? transitionStyle;
+  final bool isDismissible;
+  final bool enableSwipeGesture;
+  final SwipeDismissDirection? swipeDismissDirection;
+  final bool showDragIndicator;
+  final double cornerRadius;
+  final Color? backgroundColor;
+  final ModalHeaderStyle? headerStyle;
+  final Future<bool> Function()? onWillDismiss;
+  final VoidCallback? onDismissed;
+  final VoidCallback? onPresented;
+
+  const ModalConfiguration({
+    this.presentationStyle = ModalPresentationStyle.sheet,
+    this.detents,
+    this.initialDetent,
+    this.customDetentHeight,
+    this.transitionStyle,
+    this.isDismissible = true,
+    this.enableSwipeGesture = true,
+    this.swipeDismissDirection,
+    this.showDragIndicator = true,
+    this.cornerRadius = 12.0,
+    this.backgroundColor,
+    this.headerStyle,
+    this.onWillDismiss,
+    this.onDismissed,
+    this.onPresented,
+  });
+
   ModalConfiguration copyWith({
     ModalPresentationStyle? presentationStyle,
-    ModalTransitionStyle? transitionStyle,
     List<ModalDetent>? detents,
+    ModalDetent? initialDetent,
+    double? customDetentHeight,
+    ModalTransitionStyle? transitionStyle,
     bool? isDismissible,
-    bool? showDragIndicator,
     bool? enableSwipeGesture,
     SwipeDismissDirection? swipeDismissDirection,
-    ModalStyle? style,
+    bool? showDragIndicator,
+    double? cornerRadius,
+    Color? backgroundColor,
     ModalHeaderStyle? headerStyle,
-    Duration? animationDuration,
-    bool? maintainState,
-    bool? useSafeArea,
-    bool? enableDrag,
-    double? dragStartThreshold,
-    bool? barrierDismissible,
-    Color? barrierColor,
+    Future<bool> Function()? onWillDismiss,
+    VoidCallback? onDismissed,
+    VoidCallback? onPresented,
   }) {
     return ModalConfiguration(
       presentationStyle: presentationStyle ?? this.presentationStyle,
-      transitionStyle: transitionStyle ?? this.transitionStyle,
       detents: detents ?? this.detents,
+      initialDetent: initialDetent ?? this.initialDetent,
+      customDetentHeight: customDetentHeight ?? this.customDetentHeight,
+      transitionStyle: transitionStyle ?? this.transitionStyle,
       isDismissible: isDismissible ?? this.isDismissible,
-      showDragIndicator: showDragIndicator ?? this.showDragIndicator,
       enableSwipeGesture: enableSwipeGesture ?? this.enableSwipeGesture,
       swipeDismissDirection: swipeDismissDirection ?? this.swipeDismissDirection,
-      style: style ?? this.style,
+      showDragIndicator: showDragIndicator ?? this.showDragIndicator,
+      cornerRadius: cornerRadius ?? this.cornerRadius,
+      backgroundColor: backgroundColor ?? this.backgroundColor,
       headerStyle: headerStyle ?? this.headerStyle,
-      animationDuration: animationDuration ?? this.animationDuration,
-      maintainState: maintainState ?? this.maintainState,
-      useSafeArea: useSafeArea ?? this.useSafeArea,
-      enableDrag: enableDrag ?? this.enableDrag,
-      dragStartThreshold: dragStartThreshold ?? this.dragStartThreshold,
-      barrierDismissible: barrierDismissible ?? this.barrierDismissible,
-      barrierColor: barrierColor ?? this.barrierColor,
+      onWillDismiss: onWillDismiss ?? this.onWillDismiss,
+      onDismissed: onDismissed ?? this.onDismissed,
+      onPresented: onPresented ?? this.onPresented,
     );
   }
 }

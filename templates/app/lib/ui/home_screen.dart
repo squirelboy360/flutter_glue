@@ -1,4 +1,5 @@
 import 'package:example_app/core/routing/core/route_handler.dart';
+import 'package:example_app/core/services/native/constants/modal_styles.dart';
 import 'package:example_app/core/services/native/triggers/modal.dart';
 import 'package:example_app/core/services/native/views/text_input_service.dart';
 import 'package:flutter/foundation.dart';
@@ -142,12 +143,14 @@ class _HomeScreenState extends State<HomeScreen> {
                           context,
                           '/example',
                           headerTitle: item.title,
-
+showNativeHeader: false,
+configuration: ModalConfiguration(detents: [ModalDetent.small],),
                           arguments: {
                             'img': item.imageUrl,
                             'title': item.title,
                             'description': item.description,
                           },
+
                         );
                       },
                       child: FCard(

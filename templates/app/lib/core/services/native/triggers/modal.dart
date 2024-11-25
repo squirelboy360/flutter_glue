@@ -38,15 +38,15 @@ class ModalService {
           'showDragIndicator': config.showDragIndicator,
           'enableSwipeGesture': config.enableSwipeGesture,
           'swipeDismissDirection': config.swipeDismissDirection.name,
-          if (config.style.effectiveBackgroundColor != null)
-            'backgroundColor': config.style.effectiveBackgroundColor!.value,
-          if (config.style.cornerRadius != null)
-            'cornerRadius': config.style.cornerRadius,
-          'blurBackground': config.style.blurBackground,
-          'blurIntensity': config.style.blurIntensity,
-          'backgroundOpacity': config.style.backgroundOpacity,
-          if (config.style.animationDuration != null)
-            'animationDuration': config.style.animationDuration!.inMilliseconds,
+          if (config.backgroundColor != null)
+            'backgroundColor': config.backgroundColor!.value,
+          if (config.cornerRadius != null)
+            'cornerRadius': config.cornerRadius,
+          'blurBackground': config.blurBackground,
+          'blurIntensity': config.blurIntensity,
+          'backgroundOpacity': config.backgroundOpacity,
+          if (config.animationDuration != null)
+            'animationDuration': config.animationDuration!.inMilliseconds,
           if (config.headerStyle != null)
             ..._headerStyleToMap(config.headerStyle!),
         };
