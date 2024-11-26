@@ -11,11 +11,16 @@ class RouteHandler {
 
   /// Build a widget for the given route
   static Widget buildRoute(String route, Map<String, dynamic> arguments) {
+    debugPrint('Building route: $route with arguments: $arguments');
     final routeConfig = Routes.getRoute(route);
     if (routeConfig == null) {
+      debugPrint('Route not found: $route');
       return const SizedBox(); // Return empty widget if route not found
     }
-    return routeConfig.builder(globalContext ?? AppRouter.navigatorKey.currentContext!, arguments);
+    return routeConfig.builder(
+      globalContext ?? AppRouter.navigatorKey.currentContext!,
+      Map<String, String>.from(arguments),
+    );
   }
 
   /// Show a modal with the given route

@@ -103,102 +103,115 @@ class ModalHeaderStyle {
 
 /// Complete modal configuration
 class ModalConfiguration {
-  /// Presentation style for the modal
+  /// Presentation style of the modal
   final ModalPresentationStyle presentationStyle;
   
-  /// Transition style for the modal
-  final ModalTransitionStyle transitionStyle;
-
-  /// Whether the modal is dismissible
-  final bool isDismissible;
+  /// Transition style for presenting/dismissing
+  final ModalTransitionStyle? transitionStyle;
   
-  /// Whether to enable swipe gesture
-  final bool enableSwipeGesture;
+  /// Available detents (sizes) for the modal
+  final List<ModalDetent> detents;
+  
+  /// Initial detent to show
+  final ModalDetent? initialDetent;
+  
+  /// Whether modal can be dismissed
+  final bool isDismissible;
   
   /// Whether to show drag indicator
   final bool showDragIndicator;
   
-  /// Corner radius for the modal
-  final double? cornerRadius;
+  /// Whether swipe gesture is enabled
+  final bool enableSwipeGesture;
   
-  /// Background color (using Color)
-  final Color? backgroundColor;
-  
-  /// Padding for the modal
-  final EdgeInsets padding;
-  
-  /// Whether to use rounded corners
-  final bool roundedCorners;
-  
-  /// Custom height for the modal
-  final double? customHeight;
-
-  /// Whether to blur the background
-  final bool blurBackground;
-
-  /// Blur intensity (0.0 to 1.0)
-  final double blurIntensity;
-
-  /// Background opacity (0.0 to 1.0)
-  final double backgroundOpacity;
-
-  /// Animation duration
-  final Duration? animationDuration;
-
-  /// Header styling for the modal
-  final ModalHeaderStyle? headerStyle;
-
-  /// Swipe dismiss direction
+  /// Direction for swipe dismiss
   final SwipeDismissDirection swipeDismissDirection;
   
-  /// List of detents for the modal
-  final List<ModalDetent> detents;
+  /// Background color of modal
+  final Color? backgroundColor;
   
-  /// Initial detent for the modal
-  final ModalDetent initialDetent;
+  /// Corner radius of modal
+  final double? cornerRadius;
   
-  /// Custom detent height for the modal
-  final double? customDetentHeight;
+  /// Header styling
+  final ModalHeaderStyle? headerStyle;
   
-  /// Text for the done button
-  final String? doneButtonText;
+  /// Whether to show native header
+  final bool showNativeHeader;
   
-  /// Callback for when the done button is pressed
-  final VoidCallback? onDonePressed;
+  /// Whether to show close button
+  final bool showCloseButton;
   
-  /// Callback for when the modal is dismissed
+  /// Header title text
+  final String? headerTitle;
+  
+  /// Called before dismissal
+  final Future<bool> Function()? onWillDismiss;
+  
+  /// Called after dismissal
   final VoidCallback? onDismissed;
   
-  /// Callback for when the modal is presented
+  /// Called after presentation
   final VoidCallback? onPresented;
-  
-  /// Callback for when the modal will be dismissed
-  final Future<bool> Function()? onWillDismiss;
 
   const ModalConfiguration({
     this.presentationStyle = ModalPresentationStyle.sheet,
-    this.transitionStyle = ModalTransitionStyle.coverVertical,
+    this.transitionStyle,
+    this.detents = const [ModalDetent.medium],
+    this.initialDetent,
     this.isDismissible = true,
-    this.enableSwipeGesture = true,
     this.showDragIndicator = true,
-    this.cornerRadius = 12.0,
-    this.backgroundColor,
-    this.padding = const EdgeInsets.all(16.0),
-    this.roundedCorners = true,
-    this.customHeight,
-    this.blurBackground = false,
-    this.blurIntensity = 0.5,
-    this.backgroundOpacity = 0.5,
-    this.animationDuration,
-    this.headerStyle,
+    this.enableSwipeGesture = true,
     this.swipeDismissDirection = SwipeDismissDirection.down,
-    this.detents = const [ModalDetent.small, ModalDetent.medium, ModalDetent.large],
-    this.initialDetent = ModalDetent.small,
-    this.customDetentHeight,
-    this.doneButtonText,
-    this.onDonePressed,
+    this.backgroundColor,
+    this.cornerRadius,
+    this.headerStyle,
+    this.showNativeHeader = true,
+    this.showCloseButton = true,
+    this.headerTitle,
+    this.onWillDismiss,
     this.onDismissed,
     this.onPresented,
-    this.onWillDismiss,
   });
+
+  /// Creates a copy of this configuration with the given fields replaced with the new values
+  ModalConfiguration copyWith({
+    ModalPresentationStyle? presentationStyle,
+    ModalTransitionStyle? transitionStyle,
+    List<ModalDetent>? detents,
+    ModalDetent? initialDetent,
+    bool? isDismissible,
+    bool? showDragIndicator,
+    bool? enableSwipeGesture,
+    SwipeDismissDirection? swipeDismissDirection,
+    Color? backgroundColor,
+    double? cornerRadius,
+    ModalHeaderStyle? headerStyle,
+    bool? showNativeHeader,
+    bool? showCloseButton,
+    String? headerTitle,
+    Future<bool> Function()? onWillDismiss,
+    VoidCallback? onDismissed,
+    VoidCallback? onPresented,
+  }) {
+    return ModalConfiguration(
+      presentationStyle: presentationStyle ?? this.presentationStyle,
+      transitionStyle: transitionStyle ?? this.transitionStyle,
+      detents: detents ?? this.detents,
+      initialDetent: initialDetent ?? this.initialDetent,
+      isDismissible: isDismissible ?? this.isDismissible,
+      showDragIndicator: showDragIndicator ?? this.showDragIndicator,
+      enableSwipeGesture: enableSwipeGesture ?? this.enableSwipeGesture,
+      swipeDismissDirection: swipeDismissDirection ?? this.swipeDismissDirection,
+      backgroundColor: backgroundColor ?? this.backgroundColor,
+      cornerRadius: cornerRadius ?? this.cornerRadius,
+      headerStyle: headerStyle ?? this.headerStyle,
+      showNativeHeader: showNativeHeader ?? this.showNativeHeader,
+      showCloseButton: showCloseButton ?? this.showCloseButton,
+      headerTitle: headerTitle ?? this.headerTitle,
+      onWillDismiss: onWillDismiss ?? this.onWillDismiss,
+      onDismissed: onDismissed ?? this.onDismissed,
+      onPresented: onPresented ?? this.onPresented,
+    );
+  }
 }

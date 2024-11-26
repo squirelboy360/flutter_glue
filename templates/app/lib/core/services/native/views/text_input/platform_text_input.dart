@@ -94,6 +94,7 @@ class _PlatformTextInputState extends State<PlatformTextInput> {
           onPlatformViewCreated: _onPlatformViewCreated,
           creationParams: creationParams,
           creationParamsCodec: const StandardMessageCodec(),
+         
         );
       } else {
         return AndroidView(

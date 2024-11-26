@@ -1,3 +1,4 @@
+
 import 'package:example_app/ui/example_screen.dart';
 import 'package:example_app/ui/home_screen.dart';
 import 'package:example_app/ui/settings_screen.dart';
@@ -60,7 +61,12 @@ class Routes {
             RouteHandler.globalContext!,
             '/example',
             headerTitle: title,
-            arguments: uri.queryParameters,
+            arguments: {
+              'modalId': 'modal_${DateTime.now().millisecondsSinceEpoch}',
+              'title': title,
+              'description': uri.queryParameters['description'] ?? '',
+              'img': uri.queryParameters['img'] ?? '',
+            },
           );
           return true;
         }
