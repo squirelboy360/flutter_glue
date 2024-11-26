@@ -1,4 +1,4 @@
-import 'package:example_app/core/routing/core/route_handler.dart';
+
 import 'package:example_app/core/services/native/constants/modal_styles.dart';
 import 'package:example_app/core/services/native/triggers/modal.dart';
 import 'package:example_app/core/services/native/views/text_input_service.dart';
@@ -138,18 +138,18 @@ class _HomeScreenState extends State<HomeScreen> {
                           context: context,
                           route: '/example',
                           headerTitle: item.title,
-                          showNativeHeader: false,
+                          showNativeHeader: false,showCloseButton: true,
                           configuration: const ModalConfiguration(
                             showDragIndicator: true,
                             detents: [ModalDetent.medium],
                           ),
                           arguments: {
-                            'modalId': 'modal_${DateTime.now().millisecondsSinceEpoch}',
                             'img': item.imageUrl,
                             'title': item.title,
                             'description': item.description,
                           },
                         );
+                        debugPrint('Modal shown with ID: $modalId');
                       },
                       child: FCard(
                         image: ClipRRect(
@@ -219,18 +219,14 @@ class _HomeScreenState extends State<HomeScreen> {
         padding: const EdgeInsets.all(20.0),
         child: Container(
             width: double.infinity,
-            decoration: BoxDecoration(
-              color: Colors.red[300],
-              borderRadius: BorderRadius.circular(8),
-            ),
             child: Center(
                 child: TextInputService.createInput(
               height: 60,
-              config:  TextConfig(
+              config: TextConfig(
                 borderWidth: 1.2,
                 cornerRadius: 12,
                 placeholder: 'Search',
-                backgroundColor: context.theme.colorScheme.secondary,
+                backgroundColor: context.theme.colorScheme.background,
                 autocorrect: false,
                 textStyle: const TextStyle(fontSize: 20),
                 maxLines: 1,

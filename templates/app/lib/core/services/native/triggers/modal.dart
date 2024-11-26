@@ -22,29 +22,32 @@ class ModalService {
       try {
         final config = configuration ?? const ModalConfiguration();
         
-        // Generate a unique modal ID that will be used for updates
+        // Generate a unique modal ID
         final modalId = 'modal_${DateTime.now().millisecondsSinceEpoch}';
+        debugPrint('[ModalService] Generated modalId: $modalId');
         
         // Calculate detents based on configuration
         List<String> detents;
         if (config.detents.isNotEmpty) {
           detents = config.detents.map((d) => d.name).toList();
+        } else if (config.initialDetent != null) {
+          detents = [config.initialDetent!.name];
         } else {
-          detents = [config.initialDetent.name];
+          detents = [ModalDetent.medium.name];
         }
       
         final selectedDetent = config.initialDetent?.name ?? detents.first;
 
         final methodArguments = {
           'route': route,
+          'modalId': modalId,
           'arguments': {
             ...arguments,
-            'modalId': modalId, // Pass modalId in arguments
-            'showNativeHeader': showNativeHeader.toString(),
-            'showCloseButton': showCloseButton.toString(),
-            if (headerTitle != null) 'headerTitle': headerTitle,
+            'modalId': modalId,
           },
-          'modalId': modalId, // Also pass at top level for native side
+          'showNativeHeader': showNativeHeader,
+          'showCloseButton': showCloseButton,
+          'headerTitle': headerTitle,
           'presentationStyle': config.presentationStyle.name,
           'transitionStyle': config.transitionStyle?.name ?? ModalTransitionStyle.coverVertical.name,
           'detents': detents,
@@ -52,33 +55,31 @@ class ModalService {
           'isDismissible': config.isDismissible,
           'showDragIndicator': config.showDragIndicator,
           'enableSwipeGesture': config.enableSwipeGesture,
+          'cornerRadius': config.cornerRadius ?? 12.0,
           if (config.backgroundColor != null)
-            'backgroundColor': config.backgroundColor!.value,
-          if (config.cornerRadius != null)
-            'cornerRadius': config.cornerRadius,
-          'headerStyle': config.headerStyle != null ? _headerStyleToMap(config.headerStyle!) : null,
+            'backgroundColor': config.backgroundColor!.value.toRadixString(16),
+          if (config.headerStyle != null) 'headerStyle': {
+            if (config.headerStyle!.backgroundColor != null)
+              'backgroundColor': config.headerStyle!.backgroundColor!.value.toRadixString(16),
+            'height': config.headerStyle!.height,
+            if (config.headerStyle!.dividerColor != null)
+              'dividerColor': config.headerStyle!.dividerColor!.value.toRadixString(16),
+            'showDivider': config.headerStyle!.showDivider,
+            'elevation': config.headerStyle!.elevation,
+          },
         };
 
-        // Show modal and get the modalId back from native side
-        final result = await _channel.invokeMethod<String>('showModal', methodArguments);
+        debugPrint('[ModalService] Showing modal with config: $methodArguments');
+        await _channel.invokeMethod<void>('showModal', methodArguments);
+        debugPrint('Modal shown with ID: $modalId');
         
-        // Return the modalId for future updates
-        return result ?? modalId;
+        return modalId;
       } catch (e) {
-        debugPrint("Error showing native modal: $e");
-        // Fall back to Flutter implementation
-        return ModalFallback.showModal(
-          context: context,
-          route: route,
-          arguments: arguments,
-          showNativeHeader: showNativeHeader,
-          showCloseButton: showCloseButton,
-          headerTitle: headerTitle,
-          configuration: configuration,
-        );
+        debugPrint("[ModalService] Error showing native modal: $e");
+        return null;
       }
     } else {
-      return ModalFallback.showModal(
+      return ModalFallback.showModalWithRoute(
         context: context,
         route: route,
         arguments: arguments,
@@ -90,16 +91,126 @@ class ModalService {
     }
   }
 
-  static Map<String, dynamic> _headerStyleToMap(ModalHeaderStyle style) {
-    return {
-      if (style.backgroundColor != null)
-        'headerBackgroundColor': style.backgroundColor!.value,
-      if (style.dividerColor != null)
-        'headerDividerColor': style.dividerColor!.value,
-      if (style.height != null)
-        'headerHeight': style.height,
-      'showHeaderDivider': style.showDivider,
-    };
+  /// Updates the configuration of an active modal
+  static Future<bool> updateModalConfiguration({
+    required String modalId,
+    String? presentationStyle,
+    String? transitionStyle,
+    List<String>? detents,
+    String? selectedDetentIdentifier,
+    bool? isDismissible,
+    bool? showDragIndicator,
+    bool? enableSwipeGesture,
+    double? cornerRadius,
+    Color? backgroundColor,
+    bool? showNativeHeader,
+    bool? showCloseButton,
+    String? headerTitle,
+    Map<String, dynamic>? headerStyle,
+  }) async {
+    debugPrint('[ModalService] Updating configuration for modalId: $modalId');
+    
+    if (!Platform.isIOS) {
+      // Use the fallback implementation for Android
+      final List<ModalDetent> modalDetents = [];
+      if (detents != null) {
+        for (final detent in detents) {
+          switch (detent) {
+            case 'small':
+              modalDetents.add(ModalDetent.small);
+              break;
+            case 'medium':
+              modalDetents.add(ModalDetent.medium);
+              break;
+            case 'large':
+              modalDetents.add(ModalDetent.large);
+              break;
+          }
+        }
+      }
+
+      ModalDetent? selectedDetent;
+      if (selectedDetentIdentifier != null) {
+        switch (selectedDetentIdentifier) {
+          case 'small':
+            selectedDetent = ModalDetent.small;
+            break;
+          case 'medium':
+            selectedDetent = ModalDetent.medium;
+            break;
+          case 'large':
+            selectedDetent = ModalDetent.large;
+            break;
+        }
+      }
+
+      ModalPresentationStyle modalPresentationStyle = ModalPresentationStyle.sheet;
+      if (presentationStyle != null) {
+        switch (presentationStyle) {
+          case 'fullScreen':
+            modalPresentationStyle = ModalPresentationStyle.fullScreen;
+            break;
+          case 'formSheet':
+            modalPresentationStyle = ModalPresentationStyle.formSheet;
+            break;
+          case 'pageSheet':
+            modalPresentationStyle = ModalPresentationStyle.pageSheet;
+            break;
+        }
+      }
+
+      return ModalFallback.updateModalConfiguration(
+        modalId,
+        ModalConfiguration(
+          presentationStyle: modalPresentationStyle,
+          detents: modalDetents,
+          initialDetent: selectedDetent,
+          isDismissible: isDismissible ?? true,
+          showDragIndicator: showDragIndicator ?? true,
+          enableSwipeGesture: enableSwipeGesture ?? true,
+          cornerRadius: cornerRadius,
+          backgroundColor: backgroundColor,
+          headerStyle: headerStyle != null ? ModalHeaderStyle(
+            backgroundColor: headerStyle['backgroundColor'] != null 
+              ? Color(headerStyle['backgroundColor'] as int)
+              : null,
+            height: headerStyle['height'] as double?,
+            dividerColor: headerStyle['dividerColor'] != null 
+              ? Color(headerStyle['dividerColor'] as int)
+              : null,
+            showDivider: headerStyle['showDivider'] as bool? ?? true,
+            elevation: headerStyle['elevation'] as double?,
+          ) : null,
+        ),
+      );
+    }
+    
+    try {
+      final Map<String, dynamic> arguments = {
+        'modalId': modalId,
+        if (presentationStyle != null) 'presentationStyle': presentationStyle,
+        if (transitionStyle != null) 'transitionStyle': transitionStyle,
+        if (detents != null) 'detents': detents,
+        if (selectedDetentIdentifier != null) 'selectedDetentIdentifier': selectedDetentIdentifier,
+        if (isDismissible != null) 'isDismissible': isDismissible,
+        if (showDragIndicator != null) 'showDragIndicator': showDragIndicator,
+        if (enableSwipeGesture != null) 'enableSwipeGesture': enableSwipeGesture,
+        if (cornerRadius != null) 'cornerRadius': cornerRadius,
+        if (backgroundColor != null) 'backgroundColor': backgroundColor.value.toRadixString(16),
+        if (showNativeHeader != null) 'showNativeHeader': showNativeHeader,
+        if (showCloseButton != null) 'showCloseButton': showCloseButton,
+        if (headerTitle != null) 'headerTitle': headerTitle,
+        if (headerStyle != null) 'headerStyle': headerStyle,
+      };
+
+      debugPrint('[ModalService] Calling native updateModalConfiguration with args: $arguments');
+      final result = await _channel.invokeMethod<bool>('updateModalConfiguration', arguments);
+      debugPrint('[ModalService] Native updateModalConfiguration returned: $result');
+      return result ?? false;
+    } catch (e) {
+      debugPrint('[ModalService] Error updating modal configuration: $e');
+      return false;
+    }
   }
 
   /// Dismiss a specific modal by ID
@@ -128,68 +239,39 @@ class ModalService {
     return [];
   }
 
-  /// Updates the configuration of an active modal
-  static Future<bool> updateModalConfiguration(String modalId, ModalConfiguration configuration) async {
-    debugPrint('Updating modal configuration for ID: $modalId');
-    if (Platform.isIOS) {
-      try {
-        final methodArguments = {
-          'modalId': modalId,
-          'presentationStyle': configuration.presentationStyle.name,
-          'detents': configuration.detents.map((d) => d.name).toList(),
-          'selectedDetentIdentifier': configuration.initialDetent?.name,
-          'isDismissible': configuration.isDismissible,
-          'showDragIndicator': configuration.showDragIndicator,
-          'enableSwipeGesture': configuration.enableSwipeGesture,
-          if (configuration.backgroundColor != null)
-            'backgroundColor': configuration.backgroundColor!.value,
-          if (configuration.cornerRadius != null)
-            'cornerRadius': configuration.cornerRadius,
-          'headerStyle': configuration.headerStyle != null ? _headerStyleToMap(configuration.headerStyle!) : null,
-        };
-
-        final result = await _channel.invokeMethod<bool>('updateModalConfiguration', methodArguments);
-        return result ?? false;
-      } catch (e) {
-        debugPrint("Error updating native modal: $e");
-        return false;
-      }
-    } else {
-      return ModalFallback.updateModalConfiguration(modalId, configuration);
-    }
-  }
-
   /// Updates the detent of an active modal
   static Future<bool> updateModalDetent(String modalId, ModalDetent detent) async {
-    if (Platform.isIOS) {
-      try {
-        final success = await _channel.invokeMethod<bool>('updateModalDetent', {
-          'modalId': modalId,
-          'detent': detent.name,
-        }) ?? false;
-        return success;
-      } catch (e) {
-        debugPrint("Error updating modal detent: $e");
-        return false;
-      }
+    if (!Platform.isIOS) {
+      return ModalFallback.updateModalDetent(modalId, detent);
     }
-    return false;
+    
+    try {
+      final success = await _channel.invokeMethod<bool>('updateModalDetent', {
+        'modalId': modalId,
+        'detent': detent.name,
+      }) ?? false;
+      return success;
+    } catch (e) {
+      debugPrint("Error updating modal detent: $e");
+      return false;
+    }
   }
 
   /// Updates the presentation style of an active modal
   static Future<bool> updateModalPresentationStyle(String modalId, ModalPresentationStyle style) async {
-    if (Platform.isIOS) {
-      try {
-        final success = await _channel.invokeMethod<bool>('updateModalPresentationStyle', {
-          'modalId': modalId,
-          'presentationStyle': style.name,
-        }) ?? false;
-        return success;
-      } catch (e) {
-        debugPrint("Error updating modal presentation style: $e");
-        return false;
-      }
+    if (!Platform.isIOS) {
+      return ModalFallback.updateModalPresentationStyle(modalId, style);
     }
-    return false;
+    
+    try {
+      final success = await _channel.invokeMethod<bool>('updateModalPresentationStyle', {
+        'modalId': modalId,
+        'presentationStyle': style.name,
+      }) ?? false;
+      return success;
+    } catch (e) {
+      debugPrint("Error updating modal presentation style: $e");
+      return false;
+    }
   }
 }

@@ -15,27 +15,41 @@ class ModalFallback {
     );
   }
 
-  static Widget _buildHeader({
-    required String? headerTitle,
-    required bool showNativeHeader,
-    required bool showCloseButton,
-    required ModalHeaderStyle? headerStyle,
-    required VoidCallback onClose,
-  }) {
-    if (!showNativeHeader) return const SizedBox.shrink();
+  static double _getModalHeight(BuildContext context, ModalConfiguration currentConfig) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    
+    if (currentConfig.initialDetent != null) {
+      return screenHeight * currentConfig.initialDetent!.height;
+    }
+    
+    // Default to medium height if no detent specified
+    return screenHeight * ModalDetent.medium.height;
+  }
 
+  static Widget _buildHeader(
+    BuildContext context, {
+    required bool showCloseButton,
+    String? headerTitle,
+    ModalHeaderStyle? headerStyle,
+    required String modalId,
+  }) {
     return Container(
-      height: headerStyle?.height ?? 56,
+      height: headerStyle?.height ?? 56.0,
       decoration: BoxDecoration(
-        color: headerStyle?.backgroundColor ?? Colors.white,
-        border: headerStyle?.showDivider == true
-            ? Border(
-                bottom: BorderSide(
-                  color: headerStyle?.dividerColor ?? Colors.grey[300]!,
-                  width: 1,
-                ),
-              )
-            : null,
+        color: headerStyle?.backgroundColor ?? Theme.of(context).cardColor,
+        border: headerStyle?.showDivider == true ? Border(
+          bottom: BorderSide(
+            color: headerStyle?.dividerColor ?? Colors.grey.shade300,
+            width: 1.0,
+          ),
+        ) : null,
+        boxShadow: headerStyle?.elevation != null ? [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: headerStyle!.elevation!,
+            offset: const Offset(0, 1),
+          ),
+        ] : null,
       ),
       child: Stack(
         children: [
@@ -44,7 +58,7 @@ class ModalFallback {
               child: Text(
                 headerTitle,
                 style: const TextStyle(
-                  fontSize: 17,
+                  fontSize: 16,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -52,10 +66,11 @@ class ModalFallback {
           if (showCloseButton)
             Positioned(
               right: 8,
-              top: 8,
+              top: 0,
+              bottom: 0,
               child: IconButton(
                 icon: const Icon(Icons.close),
-                onPressed: onClose,
+                onPressed: () => Navigator.of(context).pop(),
               ),
             ),
         ],
@@ -96,6 +111,82 @@ class ModalFallback {
     return false;
   }
 
+  static Future<String?> showModalWithRoute({
+    required BuildContext context,
+    required String route,
+    required Map<String, String> arguments,
+    bool showNativeHeader = true,
+    bool showCloseButton = true,
+    String? headerTitle,
+    ModalConfiguration? configuration,
+  }) async {
+    final config = configuration ?? const ModalConfiguration();
+    final modalId = 'modal_${DateTime.now().millisecondsSinceEpoch}';
+    
+    // Create and store the modal controller
+    final controller = _ModalStateController(config, context);
+    _modalControllers[modalId] = controller;
+    
+    try {
+      await showModalBottomSheet(
+        context: context,
+        isDismissible: config.isDismissible,
+        enableDrag: config.enableSwipeGesture,
+        backgroundColor: Colors.transparent,
+        isScrollControlled: true,
+        builder: (context) => ListenableBuilder(
+          listenable: controller,
+          builder: (context, _) {
+            final currentConfig = controller.configuration;
+            final modalHeight = _getModalHeight(context, currentConfig);
+
+            return AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
+              height: modalHeight,
+              decoration: BoxDecoration(
+                color: currentConfig.backgroundColor ?? Colors.white,
+                borderRadius: BorderRadius.vertical(
+                  top: Radius.circular(currentConfig.cornerRadius ?? 12.0),
+                ),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (currentConfig.showDragIndicator) _buildDragHandle(),
+                  if (showNativeHeader) _buildHeader(
+                    context,
+                    showCloseButton: showCloseButton,
+                    headerTitle: headerTitle,
+                    headerStyle: currentConfig.headerStyle,
+                    modalId: modalId,
+                  ),
+                  Expanded(
+                    child: Navigator(
+                      onGenerateRoute: (settings) => MaterialPageRoute(
+                        builder: (context) => RouteHandler.buildRoute(route, {
+                          ...arguments,
+                          'modalId': modalId,
+                        }),
+                        settings: settings,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+      );
+      
+      return modalId;
+    } catch (e) {
+      debugPrint('[ModalFallback] Error showing modal: $e');
+      _modalControllers.remove(modalId);
+      return null;
+    }
+  }
+
   static Future<String?> showModal({
     required BuildContext context,
     required String route,
@@ -127,8 +218,7 @@ class ModalFallback {
           listenable: controller,
           builder: (context, child) {
             final currentConfig = controller.configuration;
-            final screenHeight = MediaQuery.of(context).size.height;
-            final modalHeight = screenHeight * currentConfig.initialDetent.height;
+            final modalHeight = _getModalHeight(context, currentConfig);
 
             return AnimatedContainer(
               duration: const Duration(milliseconds: 300),
@@ -145,11 +235,11 @@ class ModalFallback {
                 children: [
                   if (currentConfig.showDragIndicator) _buildDragHandle(),
                   if (showNativeHeader) _buildHeader(
-                    headerTitle: headerTitle,
-                    showNativeHeader: showNativeHeader,
+                    context,
                     showCloseButton: showCloseButton,
+                    headerTitle: headerTitle,
                     headerStyle: currentConfig.headerStyle,
-                    onClose: () => Navigator.of(context).pop(),
+                    modalId: modalId,
                   ),
                   Expanded(
                     child: SingleChildScrollView(

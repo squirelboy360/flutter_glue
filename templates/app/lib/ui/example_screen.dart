@@ -21,6 +21,7 @@ class _ExampleScreenState extends State<ExampleScreen> {
   Color _selectedColor = Colors.white;
   double _cornerRadius = 10;
   double _headerHeight = 56;
+  String? _modalId;
 
   @override
   void initState() {
@@ -33,16 +34,49 @@ class _ExampleScreenState extends State<ExampleScreen> {
       showDragIndicator: true,
       enableSwipeGesture: true,
     );
+    _modalId = widget.args['modalId'];
   }
 
   void _updateConfiguration(ModalConfiguration newConfig) {
     setState(() => _currentConfig = newConfig);
-    final modalId = widget.args['modalId'];
-    if (modalId != null) {
-      debugPrint('Updating modal configuration for ID: $modalId');
-      ModalService.updateModalConfiguration(modalId.toString(), newConfig);
-    } else {
-      debugPrint('No modalId found in arguments');
+    _updateModalConfiguration();
+  }
+
+  void _updateModalConfiguration() async {
+    if (_modalId == null) {
+      debugPrint('[ExampleScreen] No modal ID available for configuration update');
+      return;
+    }
+
+    debugPrint('[ExampleScreen] Updating configuration with modalId: $_modalId');
+    final success = await ModalService.updateModalConfiguration(
+      modalId: _modalId!,
+      presentationStyle: _currentConfig.presentationStyle.name,
+      detents: _currentConfig.detents.map((d) => d.name).toList(),
+      selectedDetentIdentifier: _currentConfig.initialDetent?.name,
+      isDismissible: _currentConfig.isDismissible,
+      showDragIndicator: _currentConfig.showDragIndicator,
+      enableSwipeGesture: _currentConfig.enableSwipeGesture,
+      cornerRadius: _cornerRadius,
+      backgroundColor: _selectedColor,
+      showNativeHeader: true,
+      showCloseButton: true,
+      headerTitle: widget.args['title'] as String?,
+      headerStyle: _currentConfig.headerStyle != null ? {
+        'backgroundColor': _currentConfig.headerStyle!.backgroundColor?.value.toRadixString(16),
+        'textColor': Colors.black.value.toRadixString(16),
+        'fontSize': 16.0,
+        'fontWeight': FontWeight.w600.index,
+      } : null,
+    );
+
+    debugPrint('[ExampleScreen] Update configuration result: $success');
+    if (!success) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to update modal configuration')),
+        );
+      }
     }
   }
 
@@ -396,13 +430,7 @@ class _ExampleScreenState extends State<ExampleScreen> {
                         _headerHeight = 56;
                         _selectedColor = Colors.white;
                       });
-                      final modalId = widget.args['modalId'];
-                      if (modalId != null) {
-                        debugPrint('Updating modal configuration for ID: $modalId');
-                        ModalService.updateModalConfiguration(modalId.toString(), _currentConfig);
-                      } else {
-                        debugPrint('No modalId found in arguments');
-                      }
+                      _updateModalConfiguration();
                     },
                     child: const Text('Reset All'),
                   ),
