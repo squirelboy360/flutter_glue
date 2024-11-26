@@ -13,9 +13,6 @@ REPO_URL="https://github.com/squirelboy360/flutter_glue.git"
 BRANCH="production"
 BACKUP_DIR=".glue_backup"
 
-# Get the absolute path of this script
-SCRIPT_PATH=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")
-
 echo -e "${BLUE}🚀 Flutter Glue Template Setup${NC}"
 
 # Function to check if a command exists
@@ -45,11 +42,13 @@ setup_new_project() {
     
     echo -e "\n${BLUE}📦 Setting up project structure...${NC}"
     
-    # Save this script content before cloning
-    SCRIPT_CONTENT=$(cat "$SCRIPT_PATH")
+    # Move setup.sh to parent directory temporarily
+    mv setup.sh ../setup.sh.tmp
     
     # Clone template
     if ! git clone --depth 1 -b $BRANCH $REPO_URL .; then
+        # Restore setup.sh if clone fails
+        mv ../setup.sh.tmp setup.sh
         echo -e "${RED}❌ Failed to download template${NC}"
         exit 1
     fi
@@ -57,9 +56,8 @@ setup_new_project() {
     # Remove git folder
     rm -rf .git
     
-    # Restore this script with the original content
-    echo "$SCRIPT_CONTENT" > setup.sh
-    chmod +x setup.sh
+    # Move setup.sh back
+    mv ../setup.sh.tmp setup.sh
     
     # Update app name and bundle ID
     echo -e "\n${BLUE}🔄 Configuring project...${NC}"
