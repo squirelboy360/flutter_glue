@@ -138,10 +138,11 @@ class _HomeScreenState extends State<HomeScreen> {
                           context: context,
                           route: '/example',
                           headerTitle: item.title,
-                          showNativeHeader: false,showCloseButton: true,
+
                           configuration: const ModalConfiguration(
                             showDragIndicator: true,
                             detents: [ModalDetent.medium],
+                            showNativeHeader: false,showCloseButton: true,
                           ),
                           arguments: {
                             'img': item.imageUrl,
