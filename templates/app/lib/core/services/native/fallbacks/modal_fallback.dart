@@ -138,22 +138,28 @@ class ModalFallback {
           listenable: controller,
           builder: (context, _) {
             final currentConfig = controller.configuration;
-            final modalHeight = _getModalHeight(context, currentConfig);
+            final modalHeight = currentConfig.presentationStyle == ModalPresentationStyle.fullScreen 
+              ? MediaQuery.of(context).size.height 
+              : _getModalHeight(context, currentConfig);
 
             return AnimatedContainer(
               duration: const Duration(milliseconds: 300),
               curve: Curves.easeInOut,
               height: modalHeight,
+              width: MediaQuery.of(context).size.width,
               decoration: BoxDecoration(
                 color: currentConfig.backgroundColor ?? Colors.white,
-                borderRadius: BorderRadius.vertical(
-                  top: Radius.circular(currentConfig.cornerRadius ?? 12.0),
-                ),
+                borderRadius: currentConfig.presentationStyle == ModalPresentationStyle.fullScreen 
+                  ? null
+                  : BorderRadius.vertical(
+                      top: Radius.circular(currentConfig.cornerRadius ?? 12.0),
+                    ),
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  if (currentConfig.showDragIndicator) _buildDragHandle(),
+                  if (currentConfig.showDragIndicator && currentConfig.presentationStyle != ModalPresentationStyle.fullScreen) 
+                    _buildDragHandle(),
                   if (showNativeHeader) _buildHeader(
                     context,
                     showCloseButton: showCloseButton,
@@ -218,22 +224,28 @@ class ModalFallback {
           listenable: controller,
           builder: (context, child) {
             final currentConfig = controller.configuration;
-            final modalHeight = _getModalHeight(context, currentConfig);
+            final modalHeight = currentConfig.presentationStyle == ModalPresentationStyle.fullScreen 
+              ? MediaQuery.of(context).size.height 
+              : _getModalHeight(context, currentConfig);
 
             return AnimatedContainer(
               duration: const Duration(milliseconds: 300),
               curve: Curves.easeInOut,
               height: modalHeight,
+              width: MediaQuery.of(context).size.width,
               decoration: BoxDecoration(
                 color: currentConfig.backgroundColor ?? Colors.white,
-                borderRadius: BorderRadius.vertical(
-                  top: Radius.circular(currentConfig.cornerRadius ?? 10),
-                ),
+                borderRadius: currentConfig.presentationStyle == ModalPresentationStyle.fullScreen 
+                  ? null
+                  : BorderRadius.vertical(
+                      top: Radius.circular(currentConfig.cornerRadius ?? 10),
+                    ),
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  if (currentConfig.showDragIndicator) _buildDragHandle(),
+                  if (currentConfig.showDragIndicator && currentConfig.presentationStyle != ModalPresentationStyle.fullScreen) 
+                    _buildDragHandle(),
                   if (showNativeHeader) _buildHeader(
                     context,
                     showCloseButton: showCloseButton,

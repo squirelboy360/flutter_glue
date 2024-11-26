@@ -278,11 +278,32 @@ import Flutter
     // Update presentation style
     switch newConfig.presentationStyle {
       case "fullScreen":
-        navController.modalPresentationStyle = .fullScreen
+        if navController.modalPresentationStyle != .fullScreen {
+          navController.dismiss(animated: true) {
+            navController.modalPresentationStyle = .fullScreen
+            if let topController = self.getTopViewController() {
+              topController.present(navController, animated: true)
+            }
+          }
+        }
       case "formSheet":
-        navController.modalPresentationStyle = .formSheet
+        if navController.modalPresentationStyle != .formSheet {
+          navController.dismiss(animated: true) {
+            navController.modalPresentationStyle = .formSheet
+            if let topController = self.getTopViewController() {
+              topController.present(navController, animated: true)
+            }
+          }
+        }
       default:
-        navController.modalPresentationStyle = .pageSheet
+        if navController.modalPresentationStyle != .pageSheet {
+          navController.dismiss(animated: true) {
+            navController.modalPresentationStyle = .pageSheet
+            if let topController = self.getTopViewController() {
+              topController.present(navController, animated: true)
+            }
+          }
+        }
     }
     
     // Update background and corner radius
